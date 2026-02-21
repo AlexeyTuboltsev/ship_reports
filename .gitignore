@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+.pytest_cache/
+
+# C++ build
+plugin/build/
+
+# Editor / tools
+.cache/
+.firecrawl/
