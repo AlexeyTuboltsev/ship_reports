@@ -22,6 +22,8 @@
 - [ ] UI / integration tests for the plugin (layer export flow, duplicate-name
       warning dialog, incompatible-host dialog)
 
+- [ ] how are UI strings/translations handled in ocpn? 
+
 ## Questions for the OpenCPN team
 
 - [ ] Sort out the name/GUID problem throughout the codebase: layers are

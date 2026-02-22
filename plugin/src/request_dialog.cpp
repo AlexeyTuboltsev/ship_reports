@@ -3,11 +3,12 @@
 #include "server_client.h"
 
 #include <wx/sizer.h>
-#include <wx/statbox.h>
 #include <wx/arrstr.h>
 #include <wx/file.h>
 #include <wx/msgdlg.h>
 #include <wx/textdlg.h>
+#include <sstream>
+#include <iomanip>
 #include <cmath>
 
 enum {
@@ -15,20 +16,23 @@ enum {
     ID_CLOSE_BTN,
     ID_HISTORY_LIST,
     ID_SAVE_LAYER,
-    ID_DELETE_ENTRY
+    ID_DELETE_ENTRY,
+    ID_GET_VIEWPORT
 };
 
 BEGIN_EVENT_TABLE(RequestDialog, wxDialog)
-    EVT_BUTTON(ID_FETCH,     RequestDialog::OnFetch)
-    EVT_BUTTON(ID_CLOSE_BTN, RequestDialog::OnClose)
-    EVT_CLOSE(RequestDialog::OnWindowClose)
+    EVT_BUTTON(ID_FETCH,        RequestDialog::OnFetch)
+    EVT_BUTTON(ID_CLOSE_BTN,    RequestDialog::OnClose)
+    EVT_CLOSE(                  RequestDialog::OnWindowClose)
     EVT_LIST_ITEM_SELECTED(ID_HISTORY_LIST, RequestDialog::OnHistorySelected)
-    EVT_BUTTON(ID_SAVE_LAYER,    RequestDialog::OnSaveLayer)
-    EVT_BUTTON(ID_DELETE_ENTRY,  RequestDialog::OnDeleteEntry)
+    EVT_BUTTON(ID_SAVE_LAYER,   RequestDialog::OnSaveLayer)
+    EVT_BUTTON(ID_DELETE_ENTRY, RequestDialog::OnDeleteEntry)
+    EVT_BUTTON(ID_GET_VIEWPORT, RequestDialog::OnGetFromViewport)
+    EVT_SIZE(RequestDialog::OnSize)
 END_EVENT_TABLE()
 
 RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
-    : wxDialog(parent, wxID_ANY, wxT("Fetch Observations"),
+    : wxDialog(parent, wxID_ANY, wxT("Ship Reports"),
                wxDefaultPosition, wxDefaultSize,
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_plugin(plugin),
@@ -37,105 +41,156 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
 
     wxBoxSizer *topSizer = new wxBoxSizer(wxVERTICAL);
 
-    // Max age selection
-    wxStaticBoxSizer *ageSizer =
-        new wxStaticBoxSizer(wxVERTICAL, this, wxT("Max Age"));
-    wxArrayString ages;
-    ages.Add(wxT("1h"));
-    ages.Add(wxT("3h"));
-    ages.Add(wxT("6h"));
-    ages.Add(wxT("12h"));
-    ages.Add(wxT("24h"));
-    m_max_age = new wxChoice(this, wxID_ANY, wxDefaultPosition,
-                             wxDefaultSize, ages);
-    m_max_age->SetSelection(2);  // default 6h
-    ageSizer->Add(m_max_age, 0, wxALL | wxEXPAND, 4);
-    topSizer->Add(ageSizer, 0, wxALL | wxEXPAND, 4);
+    m_notebook = new wxNotebook(this, wxID_ANY);
 
-    // Platform type checkboxes
-    wxStaticBoxSizer *typeSizer =
-        new wxStaticBoxSizer(wxVERTICAL, this, wxT("Platform Types"));
-    m_chk_ship    = new wxCheckBox(this, wxID_ANY, wxT("Ships"));
-    m_chk_buoy    = new wxCheckBox(this, wxID_ANY, wxT("Buoys"));
-    m_chk_shore   = new wxCheckBox(this, wxID_ANY, wxT("Shore Stations"));
-    m_chk_drifter = new wxCheckBox(this, wxID_ANY, wxT("Drifters"));
-    m_chk_other   = new wxCheckBox(this, wxID_ANY, wxT("Other"));
+    // ── Tab 1: Ship Reports ───────────────────────────────────────────────────
+
+    wxPanel *p1 = new wxPanel(m_notebook, wxID_ANY);
+    wxBoxSizer *p1Sizer = new wxBoxSizer(wxVERTICAL);
+
+    m_history_list = new wxListCtrl(p1, ID_HISTORY_LIST,
+                                    wxDefaultPosition, wxDefaultSize,
+                                    wxLC_REPORT | wxLC_SINGLE_SEL | wxBORDER_SUNKEN);
+    m_history_list->InsertColumn(0, wxT("Time (UTC)"), wxLIST_FORMAT_LEFT,  140);
+    m_history_list->InsertColumn(1, wxT("Area"),        wxLIST_FORMAT_LEFT,  100);
+    m_history_list->InsertColumn(2, wxT("Objects"),      wxLIST_FORMAT_RIGHT,  60);
+    p1Sizer->Add(m_history_list, 1, wxALL | wxEXPAND, 6);
+
+    wxBoxSizer *p1BtnSizer = new wxBoxSizer(wxHORIZONTAL);
+    m_delete_entry_btn = new wxButton(p1, ID_DELETE_ENTRY, wxT("Delete"));
+    m_delete_entry_btn->Enable(false);
+    p1BtnSizer->Add(m_delete_entry_btn, 0, wxLEFT | wxBOTTOM, 6);
+    p1BtnSizer->AddStretchSpacer();
+    m_save_layer_btn = new wxButton(p1, ID_SAVE_LAYER, wxT("Save to Layer"));
+    m_save_layer_btn->Enable(false);
+    p1BtnSizer->Add(m_save_layer_btn, 0, wxRIGHT | wxBOTTOM, 6);
+    p1Sizer->Add(p1BtnSizer, 0, wxEXPAND);
+
+    p1->SetSizer(p1Sizer);
+    m_notebook->AddPage(p1, wxT("Ship Reports"));
+
+    // ── Tab 2: Fetch new ──────────────────────────────────────────────────────
+
+    wxPanel *p2 = new wxPanel(m_notebook, wxID_ANY);
+    wxBoxSizer *p2Sizer = new wxBoxSizer(wxVERTICAL);
+
+    // Max Observation Age
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Max Observation Age")),
+                 0, wxLEFT | wxTOP, 8);
+    wxArrayString ages;
+    ages.Add(wxT("1h")); ages.Add(wxT("3h")); ages.Add(wxT("6h"));
+    ages.Add(wxT("12h")); ages.Add(wxT("24h"));
+    m_max_age = new wxChoice(p2, wxID_ANY, wxDefaultPosition, wxDefaultSize, ages);
+    m_max_age->SetSelection(2);  // default 6h
+    p2Sizer->Add(m_max_age, 0, wxALL | wxEXPAND, 6);
+
+    // Platform Types
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Platform Types")),
+                 0, wxLEFT | wxTOP, 8);
+    m_chk_ship    = new wxCheckBox(p2, wxID_ANY, wxT("Ships"));
+    m_chk_buoy    = new wxCheckBox(p2, wxID_ANY, wxT("Buoys"));
+    m_chk_shore   = new wxCheckBox(p2, wxID_ANY, wxT("Shore Stations"));
+    m_chk_drifter = new wxCheckBox(p2, wxID_ANY, wxT("Drifters"));
+    m_chk_other   = new wxCheckBox(p2, wxID_ANY, wxT("Other"));
     m_chk_ship->SetValue(true);
     m_chk_buoy->SetValue(true);
-    typeSizer->Add(m_chk_ship,    0, wxALL, 2);
-    typeSizer->Add(m_chk_buoy,    0, wxALL, 2);
-    typeSizer->Add(m_chk_shore,   0, wxALL, 2);
-    typeSizer->Add(m_chk_drifter, 0, wxALL, 2);
-    typeSizer->Add(m_chk_other,   0, wxALL, 2);
-    topSizer->Add(typeSizer, 0, wxALL | wxEXPAND, 4);
+    wxFlexGridSizer *chkGrid = new wxFlexGridSizer(3, 2, 2, 16);
+    chkGrid->Add(m_chk_ship,    0, wxALIGN_CENTER_VERTICAL);
+    chkGrid->Add(m_chk_buoy,    0, wxALIGN_CENTER_VERTICAL);
+    chkGrid->Add(m_chk_shore,   0, wxALIGN_CENTER_VERTICAL);
+    chkGrid->Add(m_chk_drifter, 0, wxALIGN_CENTER_VERTICAL);
+    chkGrid->Add(m_chk_other,   0, wxALIGN_CENTER_VERTICAL);
+    chkGrid->AddSpacer(0);
+    p2Sizer->Add(chkGrid, 0, wxALL | wxEXPAND, 6);
 
-    // Area display / edit
-    wxStaticBoxSizer *areaSizer =
-        new wxStaticBoxSizer(wxVERTICAL, this, wxT("Area (lat_min,lat_max,lon_min,lon_max)"));
-    m_area_ctrl = new wxTextCtrl(this, wxID_ANY,
-                                 wxString::Format(wxT("%.2f,%.2f,%.2f,%.2f"),
-                                     m_lat_min, m_lat_max, m_lon_min, m_lon_max),
-                                 wxDefaultPosition, wxDefaultSize,
-                                 wxTE_PROCESS_ENTER | wxHSCROLL);
-    areaSizer->Add(m_area_ctrl, 0, wxALL | wxEXPAND, 4);
-    topSizer->Add(areaSizer, 0, wxALL | wxEXPAND, 4);
+    // Area
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Area")),
+                 0, wxLEFT | wxTOP, 8);
 
-    // Status + progress
-    m_status_label = new wxStaticText(this, wxID_ANY, wxT("Ready"));
-    topSizer->Add(m_status_label, 0, wxALL | wxEXPAND, 4);
+    wxSize coordSize(80, -1);
+    m_lat_min_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
+    m_lat_max_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
+    m_lon_min_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
+    m_lon_max_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
 
-    m_progress = new wxGauge(this, wxID_ANY, 100);
-    m_progress->Hide();
-    topSizer->Add(m_progress, 0, wxALL | wxEXPAND, 4);
+    // Coordinate grid: header row + from row + to row
+    wxFlexGridSizer *coordGrid = new wxFlexGridSizer(3, 3, 4, 6);
+    coordGrid->AddGrowableCol(1, 1);
+    coordGrid->AddGrowableCol(2, 1);
+    coordGrid->AddSpacer(0);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("Lat")), 0, wxALIGN_CENTER);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("Lon")), 0, wxALIGN_CENTER);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("from")), 0, wxALIGN_CENTER_VERTICAL);
+    coordGrid->Add(m_lat_min_ctrl, 1, wxEXPAND);
+    coordGrid->Add(m_lon_min_ctrl, 1, wxEXPAND);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("to")), 0, wxALIGN_CENTER_VERTICAL);
+    coordGrid->Add(m_lat_max_ctrl, 1, wxEXPAND);
+    coordGrid->Add(m_lon_max_ctrl, 1, wxEXPAND);
 
-    // Fetch / Close buttons
-    wxBoxSizer *btnSizer = new wxBoxSizer(wxHORIZONTAL);
-    btnSizer->Add(new wxButton(this, ID_FETCH,     wxT("Fetch")), 0, wxALL, 4);
-    btnSizer->Add(new wxButton(this, ID_CLOSE_BTN, wxT("Close")), 0, wxALL, 4);
-    topSizer->Add(btnSizer, 0, wxALIGN_CENTER_HORIZONTAL | wxALL, 4);
+    wxButton *btn_vp = new wxButton(p2, ID_GET_VIEWPORT, wxT("Get from\nViewport"));
+    wxBoxSizer *areaHbox = new wxBoxSizer(wxHORIZONTAL);
+    areaHbox->Add(coordGrid, 1, wxEXPAND);
+    areaHbox->Add(btn_vp, 0, wxEXPAND | wxLEFT, 6);
+    p2Sizer->Add(areaHbox, 0, wxALL | wxEXPAND, 6);
 
-    // History section
-    wxStaticBoxSizer *histSizer =
-        new wxStaticBoxSizer(wxVERTICAL, this, wxT("History"));
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY,
+                                  wxT("Lat: -90 to 90  Lon: -180 to 180")),
+                 0, wxLEFT | wxBOTTOM, 6);
 
-    m_history_list = new wxListCtrl(this, ID_HISTORY_LIST,
-                                    wxDefaultPosition, wxSize(-1, 120),
-                                    wxLC_REPORT | wxLC_SINGLE_SEL | wxBORDER_SUNKEN);
-    m_history_list->InsertColumn(0, wxT("Time"),  wxLIST_FORMAT_LEFT, 130);
-    m_history_list->InsertColumn(1, wxT("#"),     wxLIST_FORMAT_RIGHT, 45);
-    m_history_list->InsertColumn(2, wxT("Area"),  wxLIST_FORMAT_LEFT, 160);
-    histSizer->Add(m_history_list, 1, wxALL | wxEXPAND, 4);
+    // Flexible space above Fetch button (min 12px so it can't collapse to zero)
+    p2Sizer->Add(0, 12, 1);
 
-    wxBoxSizer *histBtnSizer = new wxBoxSizer(wxHORIZONTAL);
-    m_delete_entry_btn = new wxButton(this, ID_DELETE_ENTRY, wxT("Delete"));
-    m_delete_entry_btn->Enable(false);
-    histBtnSizer->Add(m_delete_entry_btn, 0, wxALL, 4);
-    histBtnSizer->AddStretchSpacer();
-    m_save_layer_btn = new wxButton(this, ID_SAVE_LAYER, wxT("Export to Layer..."));
-    m_save_layer_btn->Enable(false);
-    histBtnSizer->Add(m_save_layer_btn, 0, wxALL, 4);
-    histSizer->Add(histBtnSizer, 0, wxEXPAND);
+    wxButton *btn_fetch = new wxButton(p2, ID_FETCH, wxT("Fetch"));
+    p2Sizer->Add(btn_fetch, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
 
-    topSizer->Add(histSizer, 1, wxALL | wxEXPAND, 4);
+    // Flexible space below Fetch button (min 12px)
+    p2Sizer->Add(0, 12, 1);
+
+    m_status_label = new wxStaticText(p2, wxID_ANY, wxT("Ready"));
+    p2Sizer->Add(m_status_label, 0, wxALL | wxEXPAND, 6);
+
+    p2->SetSizer(p2Sizer);
+    m_notebook->AddPage(p2, wxT("Fetch new"));
+
+    // ── Common area ───────────────────────────────────────────────────────────
+
+    topSizer->Add(m_notebook, 1, wxEXPAND);
+    topSizer->Add(new wxStaticLine(this), 0, wxEXPAND);
+    wxBoxSizer *closeSizer = new wxBoxSizer(wxHORIZONTAL);
+    closeSizer->AddStretchSpacer();
+    closeSizer->Add(new wxButton(this, ID_CLOSE_BTN, wxT("Close")), 0, wxALL, 6);
+    topSizer->Add(closeSizer, 0, wxEXPAND);
+
+    PopulateAreaControls();
+
+    // Initial tab: history list if non-empty, fetch form otherwise
+    m_notebook->SetSelection(m_plugin->GetFetchHistory().empty() ? 1 : 0);
 
     SetSizer(topSizer);
-    SetMinSize(wxSize(360, 400));
-    Fit();
+    topSizer->SetSizeHints(this);  // sets minimum size from sizer + fits window
 }
 
 RequestDialog::~RequestDialog() {}
+
+void RequestDialog::PopulateAreaControls() {
+    auto fmt = [](double v) -> wxString {
+        std::ostringstream ss;
+        ss.imbue(std::locale::classic());
+        ss << std::fixed << std::setprecision(2) << v;
+        return wxString(ss.str());
+    };
+    m_lat_min_ctrl->SetValue(fmt(m_lat_min));
+    m_lat_max_ctrl->SetValue(fmt(m_lat_max));
+    m_lon_min_ctrl->SetValue(fmt(m_lon_min));
+    m_lon_max_ctrl->SetValue(fmt(m_lon_max));
+}
 
 void RequestDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
     m_lat_min = vp.lat_min;
     m_lat_max = vp.lat_max;
     m_lon_min = vp.lon_min;
     m_lon_max = vp.lon_max;
-
-    if (m_area_ctrl) {
-        m_area_ctrl->SetValue(wxString::Format(
-            wxT("%.2f,%.2f,%.2f,%.2f"),
-            m_lat_min, m_lat_max, m_lon_min, m_lon_max));
-    }
+    PopulateAreaControls();
 }
 
 void RequestDialog::RefreshHistory() {
@@ -145,12 +200,11 @@ void RequestDialog::RefreshHistory() {
         const FetchRecord &r = hist[i];
         long idx = m_history_list->InsertItem((long)i, r.label);
         m_history_list->SetItem(idx, 1,
-            wxString::Format(wxT("%zu"), r.station_count));
-        m_history_list->SetItem(idx, 2,
             wxString::Format(wxT("%.1f..%.1f, %.1f..%.1f"),
                 r.lat_min, r.lat_max, r.lon_min, r.lon_max));
+        m_history_list->SetItem(idx, 2,
+            wxString::Format(wxT("%zu"), r.station_count));
     }
-    // Select the most recent entry and load its stations from disk
     if (!hist.empty()) {
         long last = (long)hist.size() - 1;
         m_history_list->SetItemState(last, wxLIST_STATE_SELECTED,
@@ -160,7 +214,33 @@ void RequestDialog::RefreshHistory() {
         ObservationList stations;
         if (m_plugin->LoadStationsForEntry((size_t)last, stations))
             m_plugin->SetStations(stations);
+        m_notebook->SetSelection(0);  // show Ship Reports tab
+    } else {
+        m_notebook->SetSelection(1);  // show Fetch new tab
     }
+}
+
+void RequestDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
+    PlugIn_ViewPort vp = m_plugin->GetCurrentViewPort();
+    m_lat_min = vp.lat_min;
+    m_lat_max = vp.lat_max;
+    m_lon_min = vp.lon_min;
+    m_lon_max = vp.lon_max;
+    PopulateAreaControls();
+}
+
+void RequestDialog::AdjustColumns() {
+    if (!m_history_list) return;
+    int total = m_history_list->GetClientSize().GetWidth();
+    int w1 = m_history_list->GetColumnWidth(1);  // Area – keep as-is
+    int w2 = m_history_list->GetColumnWidth(2);  // Objects – keep as-is
+    int w0 = total - w1 - w2;
+    if (w0 > 60) m_history_list->SetColumnWidth(0, w0);
+}
+
+void RequestDialog::OnSize(wxSizeEvent &event) {
+    event.Skip();  // Layout() runs after this handler returns
+    CallAfter([this]() { AdjustColumns(); });
 }
 
 void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
@@ -177,24 +257,25 @@ void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
         return;
     }
 
-    // Parse area from text field (lat_min,lat_max,lon_min,lon_max)
+    // Parse coordinates from the four controls
+    auto parseCoord = [](wxTextCtrl *ctrl, double &val) -> bool {
+        wxString s = ctrl->GetValue().Trim();
+        s.Replace(wxT(","), wxT("."));
+        return s.ToDouble(&val);
+    };
+
     double lat_min, lat_max, lon_min, lon_max;
-    wxString area = m_area_ctrl->GetValue();
-    wxArrayString parts = wxSplit(area, ',');
-    if (parts.Count() != 4 ||
-        !parts[0].ToDouble(&lat_min) ||
-        !parts[1].ToDouble(&lat_max) ||
-        !parts[2].ToDouble(&lon_min) ||
-        !parts[3].ToDouble(&lon_max)) {
-        m_status_label->SetLabel(wxT("Invalid area format"));
+    if (!parseCoord(m_lat_min_ctrl, lat_min) ||
+        !parseCoord(m_lat_max_ctrl, lat_max) ||
+        !parseCoord(m_lon_min_ctrl, lon_min) ||
+        !parseCoord(m_lon_max_ctrl, lon_max)) {
+        m_status_label->SetLabel(wxT("Invalid coordinates"));
         return;
     }
 
     wxString max_age = m_max_age->GetString(m_max_age->GetSelection());
 
     m_status_label->SetLabel(wxT("Fetching..."));
-    m_progress->Show();
-    m_progress->Pulse();
     Update();
 
     ObservationList stations;
@@ -204,24 +285,20 @@ void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
         lat_min, lat_max, lon_min, lon_max,
         max_age, types, stations, error);
 
-    m_progress->Hide();
-
     if (ok) {
         FetchRecord rec;
         rec.fetched_at    = wxDateTime::Now().ToUTC();
-        rec.label         = rec.fetched_at.Format(wxT("%Y-%m-%d %H:%M UTC"));
+        rec.label         = rec.fetched_at.Format(wxT("%Y-%m-%d %H:%M"));
         rec.lat_min       = lat_min;
         rec.lat_max       = lat_max;
         rec.lon_min       = lon_min;
         rec.lon_max       = lon_max;
         rec.station_count = stations.size();
 
-        m_plugin->AppendFetch(rec, stations);  // write to disk, reload metadata
-        m_plugin->SetStations(stations);       // show fetched data immediately
-        RefreshHistory();
-
-        m_status_label->SetLabel(
-            wxString::Format(wxT("Loaded %zu observations"), stations.size()));
+        m_plugin->AppendFetch(rec, stations);
+        m_plugin->SetStations(stations);
+        m_status_label->SetLabel(wxT("Ready"));
+        RefreshHistory();  // also switches to Tab 1
     } else {
         m_status_label->SetLabel(wxString::Format(wxT("Error: %s"), error));
     }
@@ -254,15 +331,14 @@ void RequestDialog::OnDeleteEntry(wxCommandEvent & /*event*/) {
                                            wxLIST_STATE_SELECTED);
     if (sel == -1) return;
 
-    m_plugin->RemoveFetch((size_t)sel);  // remove from disk, reload metadata
-    m_plugin->SetStations(ObservationList());  // clear chart
+    m_plugin->RemoveFetch((size_t)sel);
+    m_plugin->SetStations(ObservationList());
 
-    RefreshHistory();  // will reload last entry if any remain
+    RefreshHistory();
 
     if (m_plugin->GetFetchHistory().empty()) {
         m_save_layer_btn->Enable(false);
         m_delete_entry_btn->Enable(false);
-        m_status_label->SetLabel(wxT("Ready"));
     }
 }
 
@@ -273,8 +349,6 @@ static wxString FmtObs(const wxString &label, double val, const wxString &unit) 
 }
 
 // Write stations as GPX waypoints to a file.
-// Each waypoint is named by the station ID and includes all observation data
-// in its description. Layer name comes from the filename stem (set by caller).
 static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
                          const ObservationList &stations) {
     wxFile f;
@@ -294,7 +368,6 @@ static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
         gpx += wxString::Format(wxT("    <name>%s</name>\n"), st.id);
         gpx += wxT("    <sym>Float</sym>\n");
 
-        // Build description with all available data
         wxString desc;
         if (st.time.IsValid())
             desc += wxString::Format(wxT("Obs time: %s UTC\n"),
@@ -330,30 +403,25 @@ static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
 void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
     long sel = m_history_list->GetNextItem(-1, wxLIST_NEXT_ALL,
                                            wxLIST_STATE_SELECTED);
-    if (sel == -1) {
-        m_status_label->SetLabel(wxT("Select a history entry first"));
-        return;
-    }
+    if (sel == -1) return;
 
     const FetchHistory &hist = m_plugin->GetFetchHistory();
     if (sel >= (long)hist.size()) return;
     const FetchRecord &rec = hist[sel];
 
-    // Load station data from disk for this entry
     ObservationList stations;
     if (!m_plugin->LoadStationsForEntry((size_t)sel, stations)) {
-        m_status_label->SetLabel(wxT("Failed to load station data from disk"));
+        wxMessageBox(wxT("Failed to load station data from disk"),
+                     wxT("Error"), wxOK | wxICON_ERROR, this);
         return;
     }
 
     wxTextEntryDialog dlg(this, wxT("Layer name:"),
-                          wxT("Export to Layer"), rec.label);
+                          wxT("Save to Layer"), rec.label);
     if (dlg.ShowModal() != wxID_OK) return;
     wxString name = dlg.GetValue().Trim();
     if (name.IsEmpty()) return;
 
-    // Warn if a layer with this name already exists (name collisions cause
-    // unpredictable visibility behavior in OpenCPN's g_VisibleLayers system).
     wxArrayString existing = GetLayerNames();
     if (existing.Index(name) != wxNOT_FOUND) {
         int answer = wxMessageBox(
@@ -367,7 +435,6 @@ void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
         if (answer != wxYES) return;
     }
 
-    // Build safe filename
     wxString safe = name;
     safe.Replace(wxT("/"),  wxT("_"));
     safe.Replace(wxT("\\"), wxT("_"));
@@ -375,17 +442,15 @@ void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
 
     wxString *datadir = GetpPrivateApplicationDataLocation();
     if (!datadir || datadir->IsEmpty()) {
-        m_status_label->SetLabel(wxT("Cannot locate OpenCPN data directory"));
+        wxMessageBox(wxT("Cannot locate OpenCPN data directory"),
+                     wxT("Error"), wxOK | wxICON_ERROR, this);
         return;
     }
 
-    // Write GPX to a staging path named after the layer so that OpenCPN
-    // derives the correct layer name from the filename stem.
-    // LoadGPXFileAsLayer copies it to layers/ and shows it immediately.
     wxString gpx_path = *datadir + wxFILE_SEP_PATH + safe + wxT(".gpx");
     if (!WriteGPXFile(gpx_path, rec.label, stations)) {
-        m_status_label->SetLabel(
-            wxString::Format(wxT("Failed to write %s"), gpx_path));
+        wxMessageBox(wxString::Format(wxT("Failed to write %s"), gpx_path),
+                     wxT("Error"), wxOK | wxICON_ERROR, this);
         return;
     }
 
@@ -393,11 +458,8 @@ void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
     wxRemoveFile(gpx_path);
 
     if (loaded < 0) {
-        m_status_label->SetLabel(wxT("Failed to create layer"));
+        wxMessageBox(wxT("Failed to create layer"),
+                     wxT("Error"), wxOK | wxICON_ERROR, this);
         return;
     }
-
-    m_status_label->SetLabel(wxString::Format(
-        wxT("Layer \"%s\" created (%d objects)"),
-        name, loaded));
 }
