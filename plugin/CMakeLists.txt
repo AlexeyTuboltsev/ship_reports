@@ -65,6 +65,19 @@ find_package(CURL REQUIRED)
 set(OPENCPN_INCLUDE_DIR "/home/lexey/OpenCPN/include"
     CACHE PATH "Path to OpenCPN include directory")
 
+# Generate info_html.h from INFO.md at build time
+set(GENERATED_INFO_HEADER ${CMAKE_CURRENT_BINARY_DIR}/info_html.h)
+add_custom_command(
+    OUTPUT  ${GENERATED_INFO_HEADER}
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/gen_info_html.py
+                    ${CMAKE_CURRENT_SOURCE_DIR}/INFO.md
+                    ${GENERATED_INFO_HEADER}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/INFO.md
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/gen_info_html.py
+    COMMENT "Generating info_html.h from INFO.md"
+    VERBATIM
+)
+
 # Sources
 set(SRC_PLUGIN
     src/shipobs_pi.h
@@ -95,7 +108,7 @@ set(SRC_WXJSON
 )
 
 set(BUILD_SHARED_LIBS ON)
-add_library(${PACKAGE_NAME} SHARED ${SRC_PLUGIN} ${SRC_WXJSON})
+add_library(${PACKAGE_NAME} SHARED ${SRC_PLUGIN} ${SRC_WXJSON} ${GENERATED_INFO_HEADER})
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang|GNU")
     target_compile_options(${PACKAGE_NAME} PRIVATE -fvisibility=hidden)
@@ -107,6 +120,7 @@ target_include_directories(${PACKAGE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/wx
     ${OPENCPN_INCLUDE_DIR}
     ${CURL_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}   # for generated info_html.h
 )
 
 if(wxWidgets_FOUND)

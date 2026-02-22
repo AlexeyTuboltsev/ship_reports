@@ -47,6 +47,7 @@ These are standing instructions. Do not wait to be reminded. Apply them every se
 1. **shipobs-server** (`/home/lexey/ship_reports/app/`) — Python/FastAPI server that aggregates ship/buoy observation data from OSMC ERDDAP and NDBC, deduplicates, and serves a compact JSON API. Designed for self-hosting on a shore server.
 
 2. **shipobs_pi** (`/home/lexey/ship_reports/plugin/`) — C++ plugin for the OpenCPN chart plotter that fetches observations from the server and renders them as chart overlays. Standalone build, references OpenCPN plugin API headers from `/home/lexey/OpenCPN/include/ocpn_plugin.h`.
+   **Naming:** the internal/technical name is `shipobs` (binary: `libshipobs_pi.so`, class: `shipobs_pi`). The human-readable display name shown to users is always **Ship Reports**.
 
 ## Architecture
 

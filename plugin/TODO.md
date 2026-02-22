@@ -9,6 +9,8 @@
 
 - [ ] Add Swagger / OpenAPI documentation for the REST API
 - [ ] Input validation tests (bad bbox params, missing fields, out-of-range values, etc.)
+- [ ] Docker setup for self-hosting
+- [ ] Add self-hosting howto to Info tab in UI
 
 ## Plugin
 
@@ -16,11 +18,16 @@
 - [x] Server URL configurable in Settings dialog
 - [x] Replace Save to Layer with Export as GPX (no patched OpenCPN required)
 - [x] GPX export description: proper field names, knots, °T, human-readable timestamp
-- [ ] UI / integration tests for the plugin (layer export flow)
-- [ ] how are UI strings/translations handled in ocpn?
+- [x] Settings tab inline in the main dialog (server URL, display prefs, info mode)
+- [x] Station info mode: hover popup / double-click sticky frame / both
+- [x] Sticky station info frames that follow stations as the chart pans/zooms
+- [x] Yellow marker halo when info frame is focused or hovered
+- [x] Station labels rendered as GL textures (fix for GL double-buffer issue)
+- [ ] Add info tab with explanation what it is and what are our sources.
 - [ ] Add logging for fetches and errors to OpenCPN main log
-- [ ] Add info tab with explanation what it is and what are our sources. 
-- [ ] rename RequestDialog to ShipReportsPluginDialog everywhere 
+- [ ] rename RequestDialog to ShipReportsPluginDialog everywhere
+- [ ] how are UI strings/translations handled in ocpn?
+- [ ] UI / integration tests for the plugin (layer exxport flow)
 
 ## Questions for the OpenCPN team
 

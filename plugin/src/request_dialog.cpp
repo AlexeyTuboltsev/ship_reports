@@ -8,6 +8,9 @@
 #include <wx/msgdlg.h>
 #include <wx/filedlg.h>
 #include <wx/settings.h>
+#include <wx/html/htmlwin.h>
+#include <wx/utils.h>
+#include "info_html.h"
 #include <sstream>
 #include <iomanip>
 #include <cmath>
@@ -193,6 +196,23 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
 
     p3->SetSizer(p3Sizer);
     m_notebook->AddPage(p3, wxT("Settings"));
+
+    // ── Tab 4: Info ───────────────────────────────────────────────────────────
+
+    wxPanel *p4 = new wxPanel(m_notebook, wxID_ANY);
+    wxBoxSizer *p4Sizer = new wxBoxSizer(wxVERTICAL);
+
+    wxHtmlWindow *info_html = new wxHtmlWindow(
+        p4, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxHW_SCROLLBAR_AUTO);
+    info_html->SetPage(wxString::FromUTF8(kInfoHTML));
+    info_html->Bind(wxEVT_HTML_LINK_CLICKED, [](wxHtmlLinkEvent &evt) {
+        wxLaunchDefaultBrowser(evt.GetLinkInfo().GetHref());
+    });
+
+    p4Sizer->Add(info_html, 1, wxALL | wxEXPAND, 4);
+
+    p4->SetSizer(p4Sizer);
+    m_notebook->AddPage(p4, wxT("Info"));
 
     // ── Common area ───────────────────────────────────────────────────────────
 
