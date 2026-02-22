@@ -6,6 +6,7 @@
 #include "settings_dialog.h"
 
 #include <wx/app.h>
+#include <wx/intl.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
 #include <wx/log.h>
@@ -45,6 +46,7 @@ shipobs_pi::~shipobs_pi() {}
 // ---------- Required PlugIn Methods ----------
 
 int shipobs_pi::Init(void) {
+    AddLocaleCatalog(_T("opencpn-shipobs_pi"));
     m_parent_window = GetOCPNCanvasWindow();
 
     // Hide the station popup when OpenCPN loses focus. On X11, wxPopupWindow
@@ -65,9 +67,9 @@ int shipobs_pi::Init(void) {
     }
 
     m_toolbar_id = InsertPlugInTool(
-        wxT("Ship Obs"), &m_toolbar_bitmap, &m_toolbar_bitmap,
-        wxITEM_NORMAL, wxT("Ship & Buoy Observations"),
-        wxT("Display ship and buoy observation data on the chart"),
+        _("Ship Obs"), &m_toolbar_bitmap, &m_toolbar_bitmap,
+        wxITEM_NORMAL, _("Ship & Buoy Observations"),
+        _("Display ship and buoy observation data on the chart"),
         nullptr, -1, 0, this);
 
     LoadConfig();
@@ -110,15 +112,15 @@ int shipobs_pi::GetPlugInVersionMinor() { return PLUGIN_VERSION_MINOR; }
 
 wxBitmap *shipobs_pi::GetPlugInBitmap() { return &m_toolbar_bitmap; }
 
-wxString shipobs_pi::GetCommonName() { return wxT("ShipObs"); }
+wxString shipobs_pi::GetCommonName() { return wxT("Ship Reports"); }
 wxString shipobs_pi::GetShortDescription() {
-    return wxT("Ship & Buoy Observation Plugin for OpenCPN");
+    return _("Ship & Buoy Observation Plugin for OpenCPN");
 }
 wxString shipobs_pi::GetLongDescription() {
-    return wxT("Displays real-time ship and buoy meteorological/oceanographic "
-               "observations on the chart. Data is fetched from a configurable "
-               "observation server and rendered as color-coded markers with "
-               "wind barbs and station labels.");
+    return _("Displays real-time ship and buoy meteorological/oceanographic "
+             "observations on the chart. Data is fetched from a configurable "
+             "observation server and rendered as color-coded markers with "
+             "wind barbs and station labels.");
 }
 
 // ---------- Optional Method Overrides ----------

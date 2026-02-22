@@ -9,6 +9,7 @@
 #include <wx/filedlg.h>
 #include <wx/settings.h>
 #include <wx/html/htmlwin.h>
+#include <wx/intl.h>
 #include <wx/utils.h>
 #include "info_html.h"
 #include <sstream>
@@ -41,7 +42,7 @@ END_EVENT_TABLE()
 
 
 ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *plugin)
-    : wxDialog(parent, wxID_ANY, wxT("Ship Reports"),
+    : wxDialog(parent, wxID_ANY, _("Ship Reports"),
                wxDefaultPosition, wxDefaultSize,
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
       m_plugin(plugin),
@@ -60,23 +61,23 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     m_history_list = new wxListCtrl(p1, ID_HISTORY_LIST,
                                     wxDefaultPosition, wxDefaultSize,
                                     wxLC_REPORT | wxLC_SINGLE_SEL | wxBORDER_SUNKEN);
-    m_history_list->InsertColumn(0, wxT("Time (UTC)"), wxLIST_FORMAT_LEFT,  140);
-    m_history_list->InsertColumn(1, wxT("Area"),        wxLIST_FORMAT_LEFT,  100);
-    m_history_list->InsertColumn(2, wxT("Objects"),      wxLIST_FORMAT_RIGHT,  60);
+    m_history_list->InsertColumn(0, _("Time (UTC)"), wxLIST_FORMAT_LEFT,  140);
+    m_history_list->InsertColumn(1, _("Area"),       wxLIST_FORMAT_LEFT,  100);
+    m_history_list->InsertColumn(2, _("Objects"),    wxLIST_FORMAT_RIGHT,  60);
     p1Sizer->Add(m_history_list, 1, wxALL | wxEXPAND, 6);
 
     wxBoxSizer *p1BtnSizer = new wxBoxSizer(wxHORIZONTAL);
-    m_delete_entry_btn = new wxButton(p1, ID_DELETE_ENTRY, wxT("Delete"));
+    m_delete_entry_btn = new wxButton(p1, ID_DELETE_ENTRY, _("Delete"));
     m_delete_entry_btn->Enable(false);
     p1BtnSizer->Add(m_delete_entry_btn, 0, wxLEFT | wxBOTTOM, 6);
     p1BtnSizer->AddStretchSpacer();
-    m_export_gpx_btn = new wxButton(p1, ID_EXPORT_GPX, wxT("Export as GPX"));
+    m_export_gpx_btn = new wxButton(p1, ID_EXPORT_GPX, _("Export as GPX"));
     m_export_gpx_btn->Enable(false);
     p1BtnSizer->Add(m_export_gpx_btn, 0, wxRIGHT | wxBOTTOM, 6);
     p1Sizer->Add(p1BtnSizer, 0, wxEXPAND);
 
     p1->SetSizer(p1Sizer);
-    m_notebook->AddPage(p1, wxT("Ship Reports"));
+    m_notebook->AddPage(p1, _("Ship Reports"));
 
     // ── Tab 2: Fetch new ──────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     wxBoxSizer *p2Sizer = new wxBoxSizer(wxVERTICAL);
 
     // Max Observation Age
-    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Max Observation Age")),
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, _("Max Observation Age")),
                  0, wxLEFT | wxTOP, 8);
     wxArrayString ages;
     ages.Add(wxT("1h")); ages.Add(wxT("3h")); ages.Add(wxT("6h"));
@@ -94,13 +95,13 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     p2Sizer->Add(m_max_age, 0, wxALL | wxEXPAND, 6);
 
     // Platform Types
-    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Platform Types")),
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, _("Platform Types")),
                  0, wxLEFT | wxTOP, 8);
-    m_chk_ship    = new wxCheckBox(p2, wxID_ANY, wxT("Ships"));
-    m_chk_buoy    = new wxCheckBox(p2, wxID_ANY, wxT("Buoys"));
-    m_chk_shore   = new wxCheckBox(p2, wxID_ANY, wxT("Shore Stations"));
-    m_chk_drifter = new wxCheckBox(p2, wxID_ANY, wxT("Drifters"));
-    m_chk_other   = new wxCheckBox(p2, wxID_ANY, wxT("Other"));
+    m_chk_ship    = new wxCheckBox(p2, wxID_ANY, _("Ships"));
+    m_chk_buoy    = new wxCheckBox(p2, wxID_ANY, _("Buoys"));
+    m_chk_shore   = new wxCheckBox(p2, wxID_ANY, _("Shore Stations"));
+    m_chk_drifter = new wxCheckBox(p2, wxID_ANY, _("Drifters"));
+    m_chk_other   = new wxCheckBox(p2, wxID_ANY, _("Other"));
     m_chk_ship->SetValue(true);
     m_chk_buoy->SetValue(true);
     wxFlexGridSizer *chkGrid = new wxFlexGridSizer(3, 2, 2, 16);
@@ -113,7 +114,7 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     p2Sizer->Add(chkGrid, 0, wxALL | wxEXPAND, 6);
 
     // Area
-    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, wxT("Area")),
+    p2Sizer->Add(new wxStaticText(p2, wxID_ANY, _("Area")),
                  0, wxLEFT | wxTOP, 8);
 
     wxSize coordSize(80, -1);
@@ -127,23 +128,23 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     coordGrid->AddGrowableCol(1, 1);
     coordGrid->AddGrowableCol(2, 1);
     coordGrid->AddSpacer(0);
-    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("Lat")), 0, wxALIGN_CENTER);
-    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("Lon")), 0, wxALIGN_CENTER);
-    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("from")), 0, wxALIGN_CENTER_VERTICAL);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, _("Lat")), 0, wxALIGN_CENTER);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, _("Lon")), 0, wxALIGN_CENTER);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, _("from")), 0, wxALIGN_CENTER_VERTICAL);
     coordGrid->Add(m_lat_min_ctrl, 1, wxEXPAND);
     coordGrid->Add(m_lon_min_ctrl, 1, wxEXPAND);
-    coordGrid->Add(new wxStaticText(p2, wxID_ANY, wxT("to")), 0, wxALIGN_CENTER_VERTICAL);
+    coordGrid->Add(new wxStaticText(p2, wxID_ANY, _("to")), 0, wxALIGN_CENTER_VERTICAL);
     coordGrid->Add(m_lat_max_ctrl, 1, wxEXPAND);
     coordGrid->Add(m_lon_max_ctrl, 1, wxEXPAND);
 
-    wxButton *btn_vp = new wxButton(p2, ID_GET_VIEWPORT, wxT("Get from\nViewport"));
+    wxButton *btn_vp = new wxButton(p2, ID_GET_VIEWPORT, _("Get from\nViewport"));
     wxBoxSizer *areaHbox = new wxBoxSizer(wxHORIZONTAL);
     areaHbox->Add(coordGrid, 1, wxEXPAND);
     areaHbox->Add(btn_vp, 0, wxEXPAND | wxLEFT, 6);
     p2Sizer->Add(areaHbox, 0, wxALL | wxEXPAND, 6);
 
     m_coord_error = new wxStaticText(p2, wxID_ANY,
-                                     wxT("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+                                     _("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
     m_coord_error->SetForegroundColour(
         wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     p2Sizer->Add(m_coord_error, 0, wxLEFT | wxBOTTOM | wxEXPAND, 6);
@@ -151,17 +152,17 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     // Flexible space above Fetch button (min 12px so it can't collapse to zero)
     p2Sizer->Add(0, 12, 1);
 
-    m_fetch_btn = new wxButton(p2, ID_FETCH, wxT("Fetch"));
+    m_fetch_btn = new wxButton(p2, ID_FETCH, _("Fetch"));
     p2Sizer->Add(m_fetch_btn, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
 
     // Flexible space below Fetch button (min 12px)
     p2Sizer->Add(0, 12, 1);
 
-    m_status_label = new wxStaticText(p2, wxID_ANY, wxT("Ready"));
+    m_status_label = new wxStaticText(p2, wxID_ANY, _("Ready"));
     p2Sizer->Add(m_status_label, 0, wxALL | wxEXPAND, 6);
 
     p2->SetSizer(p2Sizer);
-    m_notebook->AddPage(p2, wxT("Fetch new"));
+    m_notebook->AddPage(p2, _("Fetch new"));
 
     // ── Tab 3: Settings ───────────────────────────────────────────────────────
 
@@ -169,8 +170,8 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     wxBoxSizer *p3Sizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticBoxSizer *serverBox =
-        new wxStaticBoxSizer(wxVERTICAL, p3, wxT("Server"));
-    serverBox->Add(new wxStaticText(p3, wxID_ANY, wxT("Server URL:")),
+        new wxStaticBoxSizer(wxVERTICAL, p3, _("Server"));
+    serverBox->Add(new wxStaticText(p3, wxID_ANY, _("Server URL:")),
                    0, wxALL, 2);
     m_settings_url = new wxTextCtrl(p3, wxID_ANY, wxEmptyString,
                                     wxDefaultPosition, wxSize(300, -1));
@@ -178,24 +179,24 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     p3Sizer->Add(serverBox, 0, wxALL | wxEXPAND, 6);
 
     wxStaticBoxSizer *dispBox =
-        new wxStaticBoxSizer(wxVERTICAL, p3, wxT("Display"));
-    m_settings_wind_barbs = new wxCheckBox(p3, wxID_ANY, wxT("Show wind barbs"));
-    m_settings_labels     = new wxCheckBox(p3, wxID_ANY, wxT("Show station labels"));
+        new wxStaticBoxSizer(wxVERTICAL, p3, _("Display"));
+    m_settings_wind_barbs = new wxCheckBox(p3, wxID_ANY, _("Show wind barbs"));
+    m_settings_labels     = new wxCheckBox(p3, wxID_ANY, _("Show station labels"));
     dispBox->Add(m_settings_wind_barbs, 0, wxALL, 4);
     dispBox->Add(m_settings_labels,     0, wxALL, 4);
     p3Sizer->Add(dispBox, 0, wxALL | wxEXPAND, 6);
 
     wxArrayString infoModes;
-    infoModes.Add(wxT("Hover popup"));
-    infoModes.Add(wxT("Double-click sticky window"));
-    infoModes.Add(wxT("Both"));
-    m_settings_info_mode = new wxRadioBox(p3, wxID_ANY, wxT("Station info"),
+    infoModes.Add(_("Hover popup"));
+    infoModes.Add(_("Double-click sticky window"));
+    infoModes.Add(_("Both"));
+    m_settings_info_mode = new wxRadioBox(p3, wxID_ANY, _("Station info"),
                                           wxDefaultPosition, wxDefaultSize,
                                           infoModes, 1, wxRA_SPECIFY_ROWS);
     p3Sizer->Add(m_settings_info_mode, 0, wxALL | wxEXPAND, 6);
 
     p3->SetSizer(p3Sizer);
-    m_notebook->AddPage(p3, wxT("Settings"));
+    m_notebook->AddPage(p3, _("Settings"));
 
     // ── Tab 4: Info ───────────────────────────────────────────────────────────
 
@@ -212,7 +213,7 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     p4Sizer->Add(info_html, 1, wxALL | wxEXPAND, 4);
 
     p4->SetSizer(p4Sizer);
-    m_notebook->AddPage(p4, wxT("Info"));
+    m_notebook->AddPage(p4, _("Info"));
 
     // ── Common area ───────────────────────────────────────────────────────────
 
@@ -220,7 +221,7 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     topSizer->Add(new wxStaticLine(this), 0, wxEXPAND);
     wxBoxSizer *closeSizer = new wxBoxSizer(wxHORIZONTAL);
     closeSizer->AddStretchSpacer();
-    closeSizer->Add(new wxButton(this, ID_CLOSE_BTN, wxT("Close")), 0, wxALL, 6);
+    closeSizer->Add(new wxButton(this, ID_CLOSE_BTN, _("Close")), 0, wxALL, 6);
     topSizer->Add(closeSizer, 0, wxEXPAND);
 
     m_lat_min_ctrl->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnCoordBlur, this);
@@ -354,23 +355,23 @@ bool ShipReportsPluginDialog::ValidateCoords() {
 
     if (!parse(m_lat_min_ctrl, lat_min) || !parse(m_lat_max_ctrl, lat_max) ||
         !parse(m_lon_min_ctrl, lon_min) || !parse(m_lon_max_ctrl, lon_max)) {
-        setError(wxT("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        setError(_("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
         return false;
     }
     if (lat_min < -90.0 || lat_min > 90.0 || lat_max < -90.0 || lat_max > 90.0 ||
         lon_min < -180.0 || lon_min > 180.0 || lon_max < -180.0 || lon_max > 180.0) {
-        setError(wxT("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        setError(_("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
         return false;
     }
     if (lat_min >= lat_max) {
-        m_coord_error->SetLabel(wxT("Latitude min \u2265 Latitude max \u2014 area may be empty"));
+        m_coord_error->SetLabel(_("Latitude min \u2265 Latitude max \u2014 area may be empty"));
         m_coord_error->SetForegroundColour(wxColour(180, 100, 0));
         m_coord_error->GetParent()->Layout();
         m_fetch_btn->Enable(true);
         return true;
     }
 
-    m_coord_error->SetLabel(wxT("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+    m_coord_error->SetLabel(_("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
     m_coord_error->SetForegroundColour(
         wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     m_coord_error->GetParent()->Layout();
@@ -402,7 +403,7 @@ void ShipReportsPluginDialog::OnFetch(wxCommandEvent & /*event*/) {
     if (m_chk_other->GetValue())   { if (!types.IsEmpty()) types += wxT(","); types += wxT("other"); }
 
     if (types.IsEmpty()) {
-        m_status_label->SetLabel(wxT("Select at least one platform type"));
+        m_status_label->SetLabel(_("Select at least one platform type"));
         return;
     }
 
@@ -422,7 +423,7 @@ void ShipReportsPluginDialog::OnFetch(wxCommandEvent & /*event*/) {
 
     wxString max_age = m_max_age->GetString(m_max_age->GetSelection());
 
-    m_status_label->SetLabel(wxT("Fetching..."));
+    m_status_label->SetLabel(_("Fetching..."));
     Update();
 
     ObservationList stations;
@@ -444,10 +445,10 @@ void ShipReportsPluginDialog::OnFetch(wxCommandEvent & /*event*/) {
 
         m_plugin->AppendFetch(rec, stations);
         m_plugin->SetStations(stations);
-        m_status_label->SetLabel(wxT("Ready"));
+        m_status_label->SetLabel(_("Ready"));
         RefreshHistory();  // also switches to Tab 1
     } else {
-        m_status_label->SetLabel(wxString::Format(wxT("Error: %s"), error));
+        m_status_label->SetLabel(wxString::Format(_("Error: %s"), error));
     }
 }
 
@@ -517,30 +518,30 @@ static bool WriteGPXFile(const wxString &filepath, const wxDateTime &fetched_at,
 
         wxString desc;
         if (st.time.IsValid())
-            desc += wxString::Format(wxT("Timestamp: %s UTC\n"),
+            desc += wxString::Format(_("Timestamp: %s UTC\n"),
                                      st.time.Format(wxT("%b %d, %Y %H:%M")));
-        desc += wxString::Format(wxT("Station: %s (%s)\n"), st.id, st.type);
+        desc += wxString::Format(_("Station: %s (%s)\n"), st.id, st.type);
         if (!st.country.IsEmpty())
-            desc += wxString::Format(wxT("Country: %s\n"), st.country);
+            desc += wxString::Format(_("Country: %s\n"), st.country);
         if (!std::isnan(st.wind_dir))
-            desc += wxString::Format(wxT("Wind direction: %d\u00b0T\n"),
+            desc += wxString::Format(_("Wind direction: %d\u00b0T\n"),
                                      (int)std::round(st.wind_dir));
         if (!std::isnan(st.wind_spd))
-            desc += wxString::Format(wxT("Wind speed: %.1f kts\n"),
+            desc += wxString::Format(_("Wind speed: %.1f kts\n"),
                                      st.wind_spd * 1.94384);
         if (!std::isnan(st.gust))
-            desc += wxString::Format(wxT("Gust: %.1f kts\n"),
+            desc += wxString::Format(_("Gust: %.1f kts\n"),
                                      st.gust * 1.94384);
-        desc += FmtObs(wxT("Pressure"),      st.pressure, wxT("hPa"));
+        desc += FmtObs(_("Pressure"),      st.pressure, wxT("hPa"));
         if (!std::isnan(st.air_temp))
-            desc += wxString::Format(wxT("Air temperature: %.1f \u00b0C\n"), st.air_temp);
+            desc += wxString::Format(_("Air temperature: %.1f \u00b0C\n"), st.air_temp);
         if (!std::isnan(st.sea_temp))
-            desc += wxString::Format(wxT("Sea temperature: %.1f \u00b0C\n"), st.sea_temp);
-        desc += FmtObs(wxT("Wave height"),   st.wave_ht,  wxT("m"));
-        desc += FmtObs(wxT("Visibility"),    st.vis,      wxT("nm"));
+            desc += wxString::Format(_("Sea temperature: %.1f \u00b0C\n"), st.sea_temp);
+        desc += FmtObs(_("Wave height"),   st.wave_ht,  wxT("m"));
+        desc += FmtObs(_("Visibility"),    st.vis,      wxT("nm"));
         desc.Trim();
         if (fetched_at.IsValid())
-            desc += wxString::Format(wxT("\n\nFetched: %s"),
+            desc += wxString::Format(_("\n\nFetched: %s"),
                                      fetched_at.Format(wxT("%Y-%m-%dT%H:%M:%SZ")));
 
         gpx += wxString::Format(wxT("    <desc>%s</desc>\n"), desc);
@@ -568,8 +569,8 @@ void ShipReportsPluginDialog::OnExportGPX(wxCommandEvent & /*event*/) {
 
     ObservationList stations;
     if (!m_plugin->LoadStationsForEntry((size_t)sel, stations)) {
-        wxMessageBox(wxT("Failed to load station data from disk"),
-                     wxT("Error"), wxOK | wxICON_ERROR, this);
+        wxMessageBox(_("Failed to load station data from disk"),
+                     _("Error"), wxOK | wxICON_ERROR, this);
         return;
     }
 
@@ -578,14 +579,14 @@ void ShipReportsPluginDialog::OnExportGPX(wxCommandEvent & /*event*/) {
     default_name.Replace(wxT("\\"), wxT("_"));
     default_name.Replace(wxT(":"),  wxT("-"));
 
-    wxFileDialog dlg(this, wxT("Export as GPX"), wxT(""),
+    wxFileDialog dlg(this, _("Export as GPX"), wxT(""),
                      default_name + wxT(".gpx"),
-                     wxT("GPX files (*.gpx)|*.gpx"),
+                     _("GPX files (*.gpx)|*.gpx"),
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK) return;
 
     if (!WriteGPXFile(dlg.GetPath(), rec.fetched_at, stations)) {
-        wxMessageBox(wxString::Format(wxT("Failed to write %s"), dlg.GetPath()),
-                     wxT("Error"), wxOK | wxICON_ERROR, this);
+        wxMessageBox(wxString::Format(_("Failed to write %s"), dlg.GetPath()),
+                     _("Error"), wxOK | wxICON_ERROR, this);
     }
 }

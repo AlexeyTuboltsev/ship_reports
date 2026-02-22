@@ -163,9 +163,9 @@ todo
 
 ## Authors
 
-- Vibe-coder: Alexey Tubotlsev 
+- Vibe: Alexey Tubotlsev 
   [tblz@proton.me](mailto:tblz@proton.me)
   [github.com/AlexeyTubotlsev](https://github.com/AlexeyTubotlsev)
 
-- The real coder: Claude Code
+- Coding: Claude Code
   [anthropic.com](https://anthropic.com)

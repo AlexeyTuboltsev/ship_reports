@@ -1,6 +1,7 @@
 #include "server_client.h"
 
 #include <curl/curl.h>
+#include <wx/intl.h>
 #include <wx/jsonreader.h>
 #include <wx/jsonval.h>
 #include <wx/log.h>
@@ -29,7 +30,7 @@ static bool ParseObservations(const wxString &json, ObservationList &out,
     wxJSONReader reader;
     int errors = reader.Parse(json, &root);
     if (errors > 0) {
-        error_msg = wxT("JSON parse error");
+        error_msg = _("JSON parse error");
         wxString excerpt = json.Left(300);
         wxLogError("ShipObs: JSON parse error, response: %s", excerpt);
         return false;
@@ -37,7 +38,7 @@ static bool ParseObservations(const wxString &json, ObservationList &out,
 
     if (!root.HasMember(wxT("stations")) ||
         !root[wxT("stations")].IsArray()) {
-        error_msg = wxT("Missing 'stations' array in response");
+        error_msg = _("Missing 'stations' array in response");
         wxString excerpt = json.Left(300);
         wxLogError("ShipObs: missing 'stations' array, response: %s", excerpt);
         return false;
@@ -153,7 +154,7 @@ bool FetchObservations(const wxString &server_url,
 
     CURL *curl = curl_easy_init();
     if (!curl) {
-        error_msg = wxT("Failed to initialize HTTP client");
+        error_msg = _("Failed to initialize HTTP client");
         wxLogError("ShipObs: failed to initialize curl");
         return false;
     }
@@ -173,13 +174,13 @@ bool FetchObservations(const wxString &server_url,
 
     if (res != CURLE_OK) {
         error_msg = wxString::Format(
-            wxT("Failed to connect to server: %s"), server_url);
+            _("Failed to connect to server: %s"), server_url);
         wxLogError("ShipObs: fetch failed: %s", curl_easy_strerror(res));
         return false;
     }
 
     if (response.empty()) {
-        error_msg = wxT("Empty response from server");
+        error_msg = _("Empty response from server");
         wxLogError("ShipObs: HTTP %ld, empty response", http_code);
         return false;
     }
@@ -189,7 +190,7 @@ bool FetchObservations(const wxString &server_url,
     if (http_code != 200) {
         std::string excerpt = response.substr(0, 300);
         wxLogError("ShipObs: server error body: %s", excerpt.c_str());
-        error_msg = wxString::Format(wxT("Server returned HTTP %ld"), http_code);
+        error_msg = wxString::Format(_("Server returned HTTP %ld"), http_code);
         return false;
     }
 

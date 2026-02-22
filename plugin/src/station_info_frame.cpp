@@ -2,6 +2,7 @@
 #include "shipobs_pi.h"
 
 #include <cmath>
+#include <wx/intl.h>
 #include <wx/sizer.h>
 
 BEGIN_EVENT_TABLE(StationInfoFrame, wxFrame)
@@ -40,32 +41,32 @@ StationInfoFrame::StationInfoFrame(wxWindow *parent, shipobs_pi *plugin,
     if (st.time.IsValid())
         info += wxString::Format(wxT("%s UTC\n"),
                                  st.time.Format(wxT("%Y-%m-%d %H:%M")));
-    info += wxString::Format(wxT("Station: %s  [%s]\n"), st.id, st.type);
+    info += wxString::Format(_("Station: %s  [%s]\n"), st.id, st.type);
     if (!st.country.IsEmpty())
-        info += wxString::Format(wxT("Country: %s\n"), st.country);
-    info += wxString::Format(wxT("Pos: %.3f\u00b0, %.3f\u00b0\n"), st.lat, st.lon);
+        info += wxString::Format(_("Country: %s\n"), st.country);
+    info += wxString::Format(_("Pos: %.3f\u00b0, %.3f\u00b0\n"), st.lat, st.lon);
     info += wxT("\n");
 
     if (!std::isnan(st.wind_dir) || !std::isnan(st.wind_spd)) {
-        wxString dir = std::isnan(st.wind_dir) ? wxString(wxT("--"))
+        wxString dir = std::isnan(st.wind_dir) ? wxString(_("--"))
             : wxString::Format(wxT("%d\u00b0T"), (int)std::round(st.wind_dir));
-        wxString spd = std::isnan(st.wind_spd) ? wxString(wxT("--"))
-            : wxString::Format(wxT("%.1f kts"), st.wind_spd * 1.94384);
-        info += wxString::Format(wxT("Wind: %s @ %s"), dir, spd);
+        wxString spd = std::isnan(st.wind_spd) ? wxString(_("--"))
+            : wxString::Format(_("%.1f kts"), st.wind_spd * 1.94384);
+        info += wxString::Format(_("Wind: %s @ %s"), dir, spd);
         if (!std::isnan(st.gust))
-            info += wxString::Format(wxT("  Gust: %.1f kts"), st.gust * 1.94384);
+            info += wxString::Format(_("  Gust: %.1f kts"), st.gust * 1.94384);
         info += wxT("\n");
     }
     if (!std::isnan(st.pressure))
-        info += wxString::Format(wxT("Pressure: %.1f hPa\n"), st.pressure);
+        info += wxString::Format(_("Pressure: %.1f hPa\n"), st.pressure);
     if (!std::isnan(st.air_temp))
-        info += wxString::Format(wxT("Air temp: %.1f \u00b0C\n"), st.air_temp);
+        info += wxString::Format(_("Air temp: %.1f \u00b0C\n"), st.air_temp);
     if (!std::isnan(st.sea_temp))
-        info += wxString::Format(wxT("Sea temp: %.1f \u00b0C\n"), st.sea_temp);
+        info += wxString::Format(_("Sea temp: %.1f \u00b0C\n"), st.sea_temp);
     if (!std::isnan(st.wave_ht))
-        info += wxString::Format(wxT("Wave ht: %.1f m\n"), st.wave_ht);
+        info += wxString::Format(_("Wave ht: %.1f m\n"), st.wave_ht);
     if (!std::isnan(st.vis))
-        info += wxString::Format(wxT("Visibility: %.1f nm\n"), st.vis);
+        info += wxString::Format(_("Visibility: %.1f nm\n"), st.vis);
 
     m_text->SetLabel(info);
     GetSizer()->Fit(this);

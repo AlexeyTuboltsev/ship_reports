@@ -142,3 +142,49 @@ endif()
 if(UNIX AND NOT APPLE)
     install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
 endif()
+
+# Translations: compile .po → .mo and install alongside OpenCPN locale tree
+find_package(Gettext)
+if(GETTEXT_FOUND)
+    file(GLOB PO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/po/*.po")
+    set(MO_FILES)
+    foreach(PO_FILE ${PO_FILES})
+        get_filename_component(LANG ${PO_FILE} NAME_WE)
+        set(MO_FILE "${CMAKE_CURRENT_BINARY_DIR}/${LANG}.mo")
+        add_custom_command(
+            OUTPUT  "${MO_FILE}"
+            COMMAND ${GETTEXT_MSGFMT_EXECUTABLE} -o "${MO_FILE}" "${PO_FILE}"
+            DEPENDS "${PO_FILE}"
+            COMMENT "Compiling translation: ${LANG}"
+            VERBATIM
+        )
+        list(APPEND MO_FILES "${MO_FILE}")
+        if(UNIX AND NOT APPLE)
+            install(FILES "${MO_FILE}"
+                DESTINATION "share/opencpn/locale/${LANG}/LC_MESSAGES"
+                RENAME "opencpn-${PACKAGE_NAME}.mo"
+            )
+        endif()
+    endforeach()
+    if(MO_FILES)
+        add_custom_target(translations ALL DEPENDS ${MO_FILES})
+    endif()
+
+    # Developer target: regenerate .pot template from source
+    find_program(XGETTEXT_EXECUTABLE xgettext)
+    if(XGETTEXT_EXECUTABLE)
+        add_custom_target(update_pot
+            COMMAND ${XGETTEXT_EXECUTABLE}
+                    --keyword=_
+                    --language=C++
+                    --add-comments=TRANSLATORS
+                    --sort-output
+                    --package-name=${PACKAGE_NAME}
+                    --output=${CMAKE_CURRENT_SOURCE_DIR}/po/${PACKAGE_NAME}.pot
+                    --files-from=${CMAKE_CURRENT_SOURCE_DIR}/po/POTFILES.in
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Updating po/${PACKAGE_NAME}.pot from source"
+            VERBATIM
+        )
+    endif()
+endif()
