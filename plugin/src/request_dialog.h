@@ -18,10 +18,10 @@
 
 class shipobs_pi;
 
-class RequestDialog : public wxDialog {
+class ShipReportsPluginDialog : public wxDialog {
 public:
-    RequestDialog(wxWindow *parent, shipobs_pi *plugin);
-    ~RequestDialog();
+    ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *plugin);
+    ~ShipReportsPluginDialog();
 
     void UpdateViewportBounds(const PlugIn_ViewPort &vp);
     void RefreshHistory();

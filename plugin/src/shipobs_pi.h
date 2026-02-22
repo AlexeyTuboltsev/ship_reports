@@ -10,7 +10,7 @@
 #define MY_API_VERSION_MINOR 16
 
 // Forward declarations
-class RequestDialog;
+class ShipReportsPluginDialog;
 class SettingsDialog;
 class StationPopup;
 class StationInfoFrame;
@@ -90,7 +90,7 @@ private:
     wxBitmap m_toolbar_bitmap;
 
     // Dialogs
-    RequestDialog *m_request_dialog;
+    ShipReportsPluginDialog *m_request_dialog;
     SettingsDialog *m_settings_dialog;
     StationPopup *m_station_popup;
     std::vector<StationInfoFrame*> m_info_frames;

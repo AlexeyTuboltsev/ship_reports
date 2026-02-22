@@ -28,19 +28,19 @@ enum {
     ID_LON_MAX
 };
 
-BEGIN_EVENT_TABLE(RequestDialog, wxDialog)
-    EVT_BUTTON(ID_FETCH,        RequestDialog::OnFetch)
-    EVT_BUTTON(ID_CLOSE_BTN,    RequestDialog::OnClose)
-    EVT_CLOSE(                  RequestDialog::OnWindowClose)
-    EVT_LIST_ITEM_SELECTED(ID_HISTORY_LIST, RequestDialog::OnHistorySelected)
-    EVT_BUTTON(ID_EXPORT_GPX,   RequestDialog::OnExportGPX)
-    EVT_BUTTON(ID_DELETE_ENTRY, RequestDialog::OnDeleteEntry)
-    EVT_BUTTON(ID_GET_VIEWPORT, RequestDialog::OnGetFromViewport)
-    EVT_SIZE(RequestDialog::OnSize)
+BEGIN_EVENT_TABLE(ShipReportsPluginDialog, wxDialog)
+    EVT_BUTTON(ID_FETCH,        ShipReportsPluginDialog::OnFetch)
+    EVT_BUTTON(ID_CLOSE_BTN,    ShipReportsPluginDialog::OnClose)
+    EVT_CLOSE(                  ShipReportsPluginDialog::OnWindowClose)
+    EVT_LIST_ITEM_SELECTED(ID_HISTORY_LIST, ShipReportsPluginDialog::OnHistorySelected)
+    EVT_BUTTON(ID_EXPORT_GPX,   ShipReportsPluginDialog::OnExportGPX)
+    EVT_BUTTON(ID_DELETE_ENTRY, ShipReportsPluginDialog::OnDeleteEntry)
+    EVT_BUTTON(ID_GET_VIEWPORT, ShipReportsPluginDialog::OnGetFromViewport)
+    EVT_SIZE(ShipReportsPluginDialog::OnSize)
 END_EVENT_TABLE()
 
 
-RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
+ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *plugin)
     : wxDialog(parent, wxID_ANY, wxT("Ship Reports"),
                wxDefaultPosition, wxDefaultSize,
                wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER),
@@ -223,12 +223,12 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     closeSizer->Add(new wxButton(this, ID_CLOSE_BTN, wxT("Close")), 0, wxALL, 6);
     topSizer->Add(closeSizer, 0, wxEXPAND);
 
-    m_lat_min_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
-    m_lat_max_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
-    m_lon_min_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
-    m_lon_max_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
+    m_lat_min_ctrl->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnCoordBlur, this);
+    m_lat_max_ctrl->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnCoordBlur, this);
+    m_lon_min_ctrl->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnCoordBlur, this);
+    m_lon_max_ctrl->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnCoordBlur, this);
 
-    m_settings_url->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnSettingsUrlBlur, this);
+    m_settings_url->Bind(wxEVT_KILL_FOCUS, &ShipReportsPluginDialog::OnSettingsUrlBlur, this);
     m_settings_wind_barbs->Bind(wxEVT_CHECKBOX,
         [this](wxCommandEvent&) { ApplySettings(); });
     m_settings_labels->Bind(wxEVT_CHECKBOX,
@@ -249,16 +249,16 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     SetSize(wxSize(sz.GetWidth() * 14 / 10, sz.GetHeight()));
 }
 
-RequestDialog::~RequestDialog() {}
+ShipReportsPluginDialog::~ShipReportsPluginDialog() {}
 
-void RequestDialog::PopulateSettingsControls() {
+void ShipReportsPluginDialog::PopulateSettingsControls() {
     m_settings_url->SetValue(m_plugin->GetServerURL());
     m_settings_wind_barbs->SetValue(m_plugin->GetShowWindBarbs());
     m_settings_labels->SetValue(m_plugin->GetShowLabels());
     m_settings_info_mode->SetSelection(m_plugin->GetInfoMode());
 }
 
-void RequestDialog::ApplySettings() {
+void ShipReportsPluginDialog::ApplySettings() {
     m_plugin->SetServerURL(m_settings_url->GetValue());
     m_plugin->SetShowWindBarbs(m_settings_wind_barbs->GetValue());
     m_plugin->SetShowLabels(m_settings_labels->GetValue());
@@ -267,12 +267,12 @@ void RequestDialog::ApplySettings() {
     RequestRefresh(m_plugin->GetParentWindow());
 }
 
-void RequestDialog::OnSettingsUrlBlur(wxFocusEvent &event) {
+void ShipReportsPluginDialog::OnSettingsUrlBlur(wxFocusEvent &event) {
     ApplySettings();
     event.Skip();
 }
 
-void RequestDialog::PopulateAreaControls() {
+void ShipReportsPluginDialog::PopulateAreaControls() {
     auto fmt = [](double v) -> wxString {
         std::ostringstream ss;
         ss.imbue(std::locale::classic());
@@ -285,7 +285,7 @@ void RequestDialog::PopulateAreaControls() {
     m_lon_max_ctrl->ChangeValue(fmt(m_lon_max));
 }
 
-void RequestDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
+void ShipReportsPluginDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
     m_lat_min = vp.lat_min;
     m_lat_max = vp.lat_max;
     m_lon_min = vp.lon_min;
@@ -294,7 +294,7 @@ void RequestDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
     ValidateCoords();
 }
 
-void RequestDialog::RefreshHistory() {
+void ShipReportsPluginDialog::RefreshHistory() {
     m_history_list->DeleteAllItems();
     const FetchHistory &hist = m_plugin->GetFetchHistory();
     for (size_t i = 0; i < hist.size(); i++) {
@@ -321,7 +321,7 @@ void RequestDialog::RefreshHistory() {
     }
 }
 
-void RequestDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
+void ShipReportsPluginDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
     PlugIn_ViewPort vp = m_plugin->GetCurrentViewPort();
     m_lat_min = vp.lat_min;
     m_lat_max = vp.lat_max;
@@ -331,12 +331,12 @@ void RequestDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
     ValidateCoords();
 }
 
-void RequestDialog::OnCoordBlur(wxFocusEvent &event) {
+void ShipReportsPluginDialog::OnCoordBlur(wxFocusEvent &event) {
     event.Skip();
     ValidateCoords();
 }
 
-bool RequestDialog::ValidateCoords() {
+bool ShipReportsPluginDialog::ValidateCoords() {
     auto parse = [](wxTextCtrl *ctrl, double &val) -> bool {
         wxString s = ctrl->GetValue().Trim();
         s.Replace(wxT(","), wxT("."));
@@ -378,7 +378,7 @@ bool RequestDialog::ValidateCoords() {
     return true;
 }
 
-void RequestDialog::AdjustColumns() {
+void ShipReportsPluginDialog::AdjustColumns() {
     if (!m_history_list) return;
     int total = m_history_list->GetClientSize().GetWidth();
     int w1 = m_history_list->GetColumnWidth(1);  // Area – keep as-is
@@ -387,12 +387,12 @@ void RequestDialog::AdjustColumns() {
     if (w0 > 60) m_history_list->SetColumnWidth(0, w0);
 }
 
-void RequestDialog::OnSize(wxSizeEvent &event) {
+void ShipReportsPluginDialog::OnSize(wxSizeEvent &event) {
     event.Skip();  // Layout() runs after this handler returns
     CallAfter([this]() { AdjustColumns(); });
 }
 
-void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
+void ShipReportsPluginDialog::OnFetch(wxCommandEvent & /*event*/) {
     // Build types string
     wxString types;
     if (m_chk_ship->GetValue())    { if (!types.IsEmpty()) types += wxT(","); types += wxT("ship"); }
@@ -451,17 +451,17 @@ void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
     }
 }
 
-void RequestDialog::OnClose(wxCommandEvent & /*event*/) {
+void ShipReportsPluginDialog::OnClose(wxCommandEvent & /*event*/) {
     m_plugin->SetStations(ObservationList());
     Hide();
 }
 
-void RequestDialog::OnWindowClose(wxCloseEvent & /*event*/) {
+void ShipReportsPluginDialog::OnWindowClose(wxCloseEvent & /*event*/) {
     m_plugin->SetStations(ObservationList());
     Hide();
 }
 
-void RequestDialog::OnHistorySelected(wxListEvent &event) {
+void ShipReportsPluginDialog::OnHistorySelected(wxListEvent &event) {
     long idx = event.GetIndex();
     const FetchHistory &hist = m_plugin->GetFetchHistory();
     if (idx >= 0 && idx < (long)hist.size()) {
@@ -473,7 +473,7 @@ void RequestDialog::OnHistorySelected(wxListEvent &event) {
     }
 }
 
-void RequestDialog::OnDeleteEntry(wxCommandEvent & /*event*/) {
+void ShipReportsPluginDialog::OnDeleteEntry(wxCommandEvent & /*event*/) {
     long sel = m_history_list->GetNextItem(-1, wxLIST_NEXT_ALL,
                                            wxLIST_STATE_SELECTED);
     if (sel == -1) return;
@@ -557,7 +557,7 @@ static bool WriteGPXFile(const wxString &filepath, const wxDateTime &fetched_at,
     return true;
 }
 
-void RequestDialog::OnExportGPX(wxCommandEvent & /*event*/) {
+void ShipReportsPluginDialog::OnExportGPX(wxCommandEvent & /*event*/) {
     long sel = m_history_list->GetNextItem(-1, wxLIST_NEXT_ALL,
                                            wxLIST_STATE_SELECTED);
     if (sel == -1) return;

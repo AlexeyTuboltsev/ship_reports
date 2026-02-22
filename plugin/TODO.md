@@ -23,11 +23,11 @@
 - [x] Sticky station info frames that follow stations as the chart pans/zooms
 - [x] Yellow marker halo when info frame is focused or hovered
 - [x] Station labels rendered as GL textures (fix for GL double-buffer issue)
-- [ ] Add info tab with explanation what it is and what are our sources.
-- [ ] Add logging for fetches and errors to OpenCPN main log
-- [ ] rename RequestDialog to ShipReportsPluginDialog everywhere
+- [x] Add info tab with explanation what it is and what are our sources.
+- [x] Add logging for fetches and errors to OpenCPN main log
+- [x] rename RequestDialog to ShipReportsPluginDialog everywhere
 - [ ] how are UI strings/translations handled in ocpn?
-- [ ] UI / integration tests for the plugin (layer exxport flow)
+- [ ] UI / integration tests for the plugin (layer export flow)
 
 ## Questions for the OpenCPN team
 

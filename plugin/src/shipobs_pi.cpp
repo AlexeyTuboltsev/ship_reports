@@ -8,6 +8,7 @@
 #include <wx/app.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
+#include <wx/log.h>
 #include <wx/jsonreader.h>
 #include <wx/jsonwriter.h>
 #include <wx/jsonval.h>
@@ -128,7 +129,7 @@ void shipobs_pi::OnToolbarToolCallback(int id) {
     if (id != m_toolbar_id) return;
 
     if (!m_request_dialog) {
-        m_request_dialog = new RequestDialog(m_parent_window, this);
+        m_request_dialog = new ShipReportsPluginDialog(m_parent_window, this);
     }
     bool will_show = !m_request_dialog->IsShown();
     if (m_vp_valid) {
@@ -440,7 +441,10 @@ void shipobs_pi::AppendFetch(const FetchRecord &rec,
     new_records.Append(r);
     root[wxT("records")] = new_records;
 
-    WriteHistoryFile(root);
+    if (!WriteHistoryFile(root))
+        wxLogError("ShipObs: failed to write history file");
+    else
+        wxLogMessage("ShipObs: saved fetch record (%zu station(s))", stations.size());
     LoadHistory();
 }
 
