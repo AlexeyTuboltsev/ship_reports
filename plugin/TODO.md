@@ -19,10 +19,12 @@
 
 ## Plugin
 
-- [ ] UI / integration tests for the plugin (layer export flow, duplicate-name
-      warning dialog, incompatible-host dialog)
-
-- [ ] how are UI strings/translations handled in ocpn? 
+- [x] Coordinate input validation with inline errors and fetch button gating
+- [x] Server URL configurable in Settings dialog
+- [ ] Duplicate layer name: improve UX (currently blocks reuse; consider rename flow)
+- [ ] UI / integration tests for the plugin (layer export flow, incompatible-host dialog)
+- [ ] how are UI strings/translations handled in ocpn?
+- [ ] Add logging for fetches and errors to OpenCPN main log
 
 ## Questions for the OpenCPN team
 

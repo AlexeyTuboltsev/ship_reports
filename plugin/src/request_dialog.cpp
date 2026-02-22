@@ -6,7 +6,8 @@
 #include <wx/arrstr.h>
 #include <wx/file.h>
 #include <wx/msgdlg.h>
-#include <wx/textdlg.h>
+#include <wx/filedlg.h>
+#include <wx/settings.h>
 #include <sstream>
 #include <iomanip>
 #include <cmath>
@@ -15,9 +16,13 @@ enum {
     ID_FETCH = 10001,
     ID_CLOSE_BTN,
     ID_HISTORY_LIST,
-    ID_SAVE_LAYER,
+    ID_EXPORT_GPX,
     ID_DELETE_ENTRY,
-    ID_GET_VIEWPORT
+    ID_GET_VIEWPORT,
+    ID_LAT_MIN,
+    ID_LAT_MAX,
+    ID_LON_MIN,
+    ID_LON_MAX
 };
 
 BEGIN_EVENT_TABLE(RequestDialog, wxDialog)
@@ -25,11 +30,12 @@ BEGIN_EVENT_TABLE(RequestDialog, wxDialog)
     EVT_BUTTON(ID_CLOSE_BTN,    RequestDialog::OnClose)
     EVT_CLOSE(                  RequestDialog::OnWindowClose)
     EVT_LIST_ITEM_SELECTED(ID_HISTORY_LIST, RequestDialog::OnHistorySelected)
-    EVT_BUTTON(ID_SAVE_LAYER,   RequestDialog::OnSaveLayer)
+    EVT_BUTTON(ID_EXPORT_GPX,   RequestDialog::OnExportGPX)
     EVT_BUTTON(ID_DELETE_ENTRY, RequestDialog::OnDeleteEntry)
     EVT_BUTTON(ID_GET_VIEWPORT, RequestDialog::OnGetFromViewport)
     EVT_SIZE(RequestDialog::OnSize)
 END_EVENT_TABLE()
+
 
 RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     : wxDialog(parent, wxID_ANY, wxT("Ship Reports"),
@@ -61,9 +67,9 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     m_delete_entry_btn->Enable(false);
     p1BtnSizer->Add(m_delete_entry_btn, 0, wxLEFT | wxBOTTOM, 6);
     p1BtnSizer->AddStretchSpacer();
-    m_save_layer_btn = new wxButton(p1, ID_SAVE_LAYER, wxT("Save to Layer"));
-    m_save_layer_btn->Enable(false);
-    p1BtnSizer->Add(m_save_layer_btn, 0, wxRIGHT | wxBOTTOM, 6);
+    m_export_gpx_btn = new wxButton(p1, ID_EXPORT_GPX, wxT("Export as GPX"));
+    m_export_gpx_btn->Enable(false);
+    p1BtnSizer->Add(m_export_gpx_btn, 0, wxRIGHT | wxBOTTOM, 6);
     p1Sizer->Add(p1BtnSizer, 0, wxEXPAND);
 
     p1->SetSizer(p1Sizer);
@@ -108,10 +114,10 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
                  0, wxLEFT | wxTOP, 8);
 
     wxSize coordSize(80, -1);
-    m_lat_min_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
-    m_lat_max_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
-    m_lon_min_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
-    m_lon_max_ctrl = new wxTextCtrl(p2, wxID_ANY, wxT(""), wxDefaultPosition, coordSize);
+    m_lat_min_ctrl = new wxTextCtrl(p2, ID_LAT_MIN, wxT(""), wxDefaultPosition, coordSize);
+    m_lat_max_ctrl = new wxTextCtrl(p2, ID_LAT_MAX, wxT(""), wxDefaultPosition, coordSize);
+    m_lon_min_ctrl = new wxTextCtrl(p2, ID_LON_MIN, wxT(""), wxDefaultPosition, coordSize);
+    m_lon_max_ctrl = new wxTextCtrl(p2, ID_LON_MAX, wxT(""), wxDefaultPosition, coordSize);
 
     // Coordinate grid: header row + from row + to row
     wxFlexGridSizer *coordGrid = new wxFlexGridSizer(3, 3, 4, 6);
@@ -133,15 +139,17 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     areaHbox->Add(btn_vp, 0, wxEXPAND | wxLEFT, 6);
     p2Sizer->Add(areaHbox, 0, wxALL | wxEXPAND, 6);
 
-    p2Sizer->Add(new wxStaticText(p2, wxID_ANY,
-                                  wxT("Lat: -90 to 90  Lon: -180 to 180")),
-                 0, wxLEFT | wxBOTTOM, 6);
+    m_coord_error = new wxStaticText(p2, wxID_ANY,
+                                     wxT("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+    m_coord_error->SetForegroundColour(
+        wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    p2Sizer->Add(m_coord_error, 0, wxLEFT | wxBOTTOM | wxEXPAND, 6);
 
     // Flexible space above Fetch button (min 12px so it can't collapse to zero)
     p2Sizer->Add(0, 12, 1);
 
-    wxButton *btn_fetch = new wxButton(p2, ID_FETCH, wxT("Fetch"));
-    p2Sizer->Add(btn_fetch, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
+    m_fetch_btn = new wxButton(p2, ID_FETCH, wxT("Fetch"));
+    p2Sizer->Add(m_fetch_btn, 0, wxLEFT | wxRIGHT | wxEXPAND, 8);
 
     // Flexible space below Fetch button (min 12px)
     p2Sizer->Add(0, 12, 1);
@@ -161,13 +169,21 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     closeSizer->Add(new wxButton(this, ID_CLOSE_BTN, wxT("Close")), 0, wxALL, 6);
     topSizer->Add(closeSizer, 0, wxEXPAND);
 
+    m_lat_min_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
+    m_lat_max_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
+    m_lon_min_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
+    m_lon_max_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
+
     PopulateAreaControls();
+    ValidateCoords();
 
     // Initial tab: history list if non-empty, fetch form otherwise
     m_notebook->SetSelection(m_plugin->GetFetchHistory().empty() ? 1 : 0);
 
     SetSizer(topSizer);
     topSizer->SetSizeHints(this);  // sets minimum size from sizer + fits window
+    wxSize sz = GetSize();
+    SetSize(wxSize(sz.GetWidth() * 14 / 10, sz.GetHeight()));
 }
 
 RequestDialog::~RequestDialog() {}
@@ -179,10 +195,10 @@ void RequestDialog::PopulateAreaControls() {
         ss << std::fixed << std::setprecision(2) << v;
         return wxString(ss.str());
     };
-    m_lat_min_ctrl->SetValue(fmt(m_lat_min));
-    m_lat_max_ctrl->SetValue(fmt(m_lat_max));
-    m_lon_min_ctrl->SetValue(fmt(m_lon_min));
-    m_lon_max_ctrl->SetValue(fmt(m_lon_max));
+    m_lat_min_ctrl->ChangeValue(fmt(m_lat_min));
+    m_lat_max_ctrl->ChangeValue(fmt(m_lat_max));
+    m_lon_min_ctrl->ChangeValue(fmt(m_lon_min));
+    m_lon_max_ctrl->ChangeValue(fmt(m_lon_max));
 }
 
 void RequestDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
@@ -191,6 +207,7 @@ void RequestDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
     m_lon_min = vp.lon_min;
     m_lon_max = vp.lon_max;
     PopulateAreaControls();
+    ValidateCoords();
 }
 
 void RequestDialog::RefreshHistory() {
@@ -210,7 +227,7 @@ void RequestDialog::RefreshHistory() {
         m_history_list->SetItemState(last, wxLIST_STATE_SELECTED,
                                      wxLIST_STATE_SELECTED);
         m_history_list->EnsureVisible(last);
-        m_save_layer_btn->Enable(true);
+        m_export_gpx_btn->Enable(true);
         ObservationList stations;
         if (m_plugin->LoadStationsForEntry((size_t)last, stations))
             m_plugin->SetStations(stations);
@@ -227,6 +244,54 @@ void RequestDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
     m_lon_min = vp.lon_min;
     m_lon_max = vp.lon_max;
     PopulateAreaControls();
+    ValidateCoords();
+}
+
+void RequestDialog::OnCoordBlur(wxFocusEvent &event) {
+    event.Skip();
+    ValidateCoords();
+}
+
+bool RequestDialog::ValidateCoords() {
+    auto parse = [](wxTextCtrl *ctrl, double &val) -> bool {
+        wxString s = ctrl->GetValue().Trim();
+        s.Replace(wxT(","), wxT("."));
+        return s.ToDouble(&val);
+    };
+
+    double lat_min, lat_max, lon_min, lon_max;
+
+    auto setError = [&](const wxString &msg) {
+        m_coord_error->SetLabel(msg);
+        m_coord_error->SetForegroundColour(*wxRED);
+        m_coord_error->GetParent()->Layout();
+        m_fetch_btn->Enable(false);
+    };
+
+    if (!parse(m_lat_min_ctrl, lat_min) || !parse(m_lat_max_ctrl, lat_max) ||
+        !parse(m_lon_min_ctrl, lon_min) || !parse(m_lon_max_ctrl, lon_max)) {
+        setError(wxT("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        return false;
+    }
+    if (lat_min < -90.0 || lat_min > 90.0 || lat_max < -90.0 || lat_max > 90.0 ||
+        lon_min < -180.0 || lon_min > 180.0 || lon_max < -180.0 || lon_max > 180.0) {
+        setError(wxT("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        return false;
+    }
+    if (lat_min >= lat_max) {
+        m_coord_error->SetLabel(wxT("Latitude min \u2265 Latitude max \u2014 area may be empty"));
+        m_coord_error->SetForegroundColour(wxColour(180, 100, 0));
+        m_coord_error->GetParent()->Layout();
+        m_fetch_btn->Enable(true);
+        return true;
+    }
+
+    m_coord_error->SetLabel(wxT("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+    m_coord_error->SetForegroundColour(
+        wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+    m_coord_error->GetParent()->Layout();
+    m_fetch_btn->Enable(true);
+    return true;
 }
 
 void RequestDialog::AdjustColumns() {
@@ -257,20 +322,18 @@ void RequestDialog::OnFetch(wxCommandEvent & /*event*/) {
         return;
     }
 
-    // Parse coordinates from the four controls
+    // Coords are pre-validated (Fetch button is disabled when invalid)
+    double lat_min, lat_max, lon_min, lon_max;
     auto parseCoord = [](wxTextCtrl *ctrl, double &val) -> bool {
         wxString s = ctrl->GetValue().Trim();
         s.Replace(wxT(","), wxT("."));
         return s.ToDouble(&val);
     };
-
-    double lat_min, lat_max, lon_min, lon_max;
     if (!parseCoord(m_lat_min_ctrl, lat_min) ||
         !parseCoord(m_lat_max_ctrl, lat_max) ||
         !parseCoord(m_lon_min_ctrl, lon_min) ||
         !parseCoord(m_lon_max_ctrl, lon_max)) {
-        m_status_label->SetLabel(wxT("Invalid coordinates"));
-        return;
+        return;  // should not happen — button is disabled when invalid
     }
 
     wxString max_age = m_max_age->GetString(m_max_age->GetSelection());
@@ -321,7 +384,7 @@ void RequestDialog::OnHistorySelected(wxListEvent &event) {
         ObservationList stations;
         if (m_plugin->LoadStationsForEntry((size_t)idx, stations))
             m_plugin->SetStations(stations);
-        m_save_layer_btn->Enable(true);
+        m_export_gpx_btn->Enable(true);
         m_delete_entry_btn->Enable(true);
     }
 }
@@ -337,7 +400,7 @@ void RequestDialog::OnDeleteEntry(wxCommandEvent & /*event*/) {
     RefreshHistory();
 
     if (m_plugin->GetFetchHistory().empty()) {
-        m_save_layer_btn->Enable(false);
+        m_export_gpx_btn->Enable(false);
         m_delete_entry_btn->Enable(false);
     }
 }
@@ -400,7 +463,7 @@ static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
     return true;
 }
 
-void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
+void RequestDialog::OnExportGPX(wxCommandEvent & /*event*/) {
     long sel = m_history_list->GetNextItem(-1, wxLIST_NEXT_ALL,
                                            wxLIST_STATE_SELECTED);
     if (sel == -1) return;
@@ -416,50 +479,19 @@ void RequestDialog::OnSaveLayer(wxCommandEvent & /*event*/) {
         return;
     }
 
-    wxTextEntryDialog dlg(this, wxT("Layer name:"),
-                          wxT("Save to Layer"), rec.label);
+    wxString default_name = rec.label;
+    default_name.Replace(wxT("/"),  wxT("_"));
+    default_name.Replace(wxT("\\"), wxT("_"));
+    default_name.Replace(wxT(":"),  wxT("-"));
+
+    wxFileDialog dlg(this, wxT("Export as GPX"), wxT(""),
+                     default_name + wxT(".gpx"),
+                     wxT("GPX files (*.gpx)|*.gpx"),
+                     wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK) return;
-    wxString name = dlg.GetValue().Trim();
-    if (name.IsEmpty()) return;
 
-    wxArrayString existing = GetLayerNames();
-    if (existing.Index(name) != wxNOT_FOUND) {
-        int answer = wxMessageBox(
-            wxString::Format(
-                wxT("A layer named \"%s\" already exists.\n\n"
-                    "Using the same name may cause unexpected visibility "
-                    "behavior.\n\nContinue anyway?"),
-                name),
-            wxT("Duplicate Layer Name"),
-            wxYES_NO | wxICON_WARNING, this);
-        if (answer != wxYES) return;
-    }
-
-    wxString safe = name;
-    safe.Replace(wxT("/"),  wxT("_"));
-    safe.Replace(wxT("\\"), wxT("_"));
-    safe.Replace(wxT(":"),  wxT("-"));
-
-    wxString *datadir = GetpPrivateApplicationDataLocation();
-    if (!datadir || datadir->IsEmpty()) {
-        wxMessageBox(wxT("Cannot locate OpenCPN data directory"),
+    if (!WriteGPXFile(dlg.GetPath(), rec.label, stations)) {
+        wxMessageBox(wxString::Format(wxT("Failed to write %s"), dlg.GetPath()),
                      wxT("Error"), wxOK | wxICON_ERROR, this);
-        return;
-    }
-
-    wxString gpx_path = *datadir + wxFILE_SEP_PATH + safe + wxT(".gpx");
-    if (!WriteGPXFile(gpx_path, rec.label, stations)) {
-        wxMessageBox(wxString::Format(wxT("Failed to write %s"), gpx_path),
-                     wxT("Error"), wxOK | wxICON_ERROR, this);
-        return;
-    }
-
-    int loaded = LoadGPXFileAsLayer(gpx_path, /*b_visible=*/false);
-    wxRemoveFile(gpx_path);
-
-    if (loaded < 0) {
-        wxMessageBox(wxT("Failed to create layer"),
-                     wxT("Error"), wxOK | wxICON_ERROR, this);
-        return;
     }
 }

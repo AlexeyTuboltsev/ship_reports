@@ -29,13 +29,15 @@ private:
     void OnClose(wxCommandEvent &event);
     void OnWindowClose(wxCloseEvent &event);
     void OnHistorySelected(wxListEvent &event);
-    void OnSaveLayer(wxCommandEvent &event);
+    void OnExportGPX(wxCommandEvent &event);
     void OnDeleteEntry(wxCommandEvent &event);
     void OnGetFromViewport(wxCommandEvent &event);
     void OnSize(wxSizeEvent &event);
 
     void PopulateAreaControls();
     void AdjustColumns();
+    void OnCoordBlur(wxFocusEvent &event);
+    bool ValidateCoords();
 
     shipobs_pi *m_plugin;
 
@@ -43,7 +45,7 @@ private:
 
     // Tab 1 – Ship Reports
     wxListCtrl *m_history_list;
-    wxButton   *m_save_layer_btn;
+    wxButton   *m_export_gpx_btn;
     wxButton   *m_delete_entry_btn;
 
     // Tab 2 – Fetch new
@@ -57,6 +59,8 @@ private:
     wxTextCtrl   *m_lat_max_ctrl;
     wxTextCtrl   *m_lon_min_ctrl;
     wxTextCtrl   *m_lon_max_ctrl;
+    wxStaticText *m_coord_error;
+    wxButton     *m_fetch_btn;
     wxStaticText *m_status_label;
 
     double m_lat_min, m_lat_max, m_lon_min, m_lon_max;
