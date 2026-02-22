@@ -2,27 +2,21 @@
 
 ## Compatibility
 
-- [ ] Check host OpenCPN version on `Init()` and show an incompatibility dialog
-      if it is too old to provide `LoadGPXFileAsLayer` / `GetLayerNames`.
-      The minimum required version is the one that merges our API PR.
+- [x] Removed dependency on patched OpenCPN (`LoadGPXFileAsLayer` / `GetLayerNames`);
+      plugin now works with stock OpenCPN. Incompatible-host dialog no longer needed.
 
 ## Server
 
 - [ ] Add Swagger / OpenAPI documentation for the REST API
 - [ ] Input validation tests (bad bbox params, missing fields, out-of-range values, etc.)
 
-## OpenCPN API changes
-
-- [ ] Unit / integration tests for `LoadGPXFileAsLayer` (visibility enforcement,
-      duplicate-name behaviour, LM list refresh)
-- [ ] Unit test for `GetLayerNames` (empty list, populated list, order)
-
 ## Plugin
 
 - [x] Coordinate input validation with inline errors and fetch button gating
 - [x] Server URL configurable in Settings dialog
-- [ ] Duplicate layer name: improve UX (currently blocks reuse; consider rename flow)
-- [ ] UI / integration tests for the plugin (layer export flow, incompatible-host dialog)
+- [x] Replace Save to Layer with Export as GPX (no patched OpenCPN required)
+- [x] GPX export description: proper field names, knots, °T, human-readable timestamp
+- [ ] UI / integration tests for the plugin (layer export flow)
 - [ ] how are UI strings/translations handled in ocpn?
 - [ ] Add logging for fetches and errors to OpenCPN main log
 - [ ] Add info tab with explanation what it is and what are our sources. 
