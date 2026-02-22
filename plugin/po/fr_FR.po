@@ -1,0 +1,263 @@
+# French translation of opencpn-shipobs_pi
+# Copyright (C) 2025
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: opencpn-shipobs_pi\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-02-22 00:00+0000\n"
+"PO-Revision-Date: 2026-02-22 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: French\n"
+"Language: fr_FR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+# Plugin description
+msgid "Ship & Buoy Observations"
+msgstr "Observations de navires et bouées"
+
+msgid "Ship Obs"
+msgstr "Obs. marines"
+
+msgid "Display ship and buoy observation data from a shipobs server"
+msgstr "Affiche les observations de navires et bouées depuis un serveur shipobs"
+
+# Main dialog / tab 1
+msgid "Ship Reports"
+msgstr "Rapports marins"
+
+# Tab names
+msgid "Fetch new"
+msgstr "Nouvelle requête"
+
+msgid "Settings"
+msgstr "Paramètres"
+
+msgid "Info"
+msgstr "Info"
+
+# History list columns
+msgid "Time (UTC)"
+msgstr "Heure (UTC)"
+
+msgid "Area"
+msgstr "Zone"
+
+msgid "Objects"
+msgstr "Objets"
+
+# Buttons
+msgid "Delete"
+msgstr "Supprimer"
+
+msgid "Export as GPX"
+msgstr "Exporter en GPX"
+
+msgid "Fetch"
+msgstr "Récupérer"
+
+msgid "Close"
+msgstr "Fermer"
+
+msgid "OK"
+msgstr "OK"
+
+msgid "Cancel"
+msgstr "Annuler"
+
+# Fetch tab — form labels
+msgid "Max Observation Age"
+msgstr "Âge max. des observations"
+
+msgid "Platform Types"
+msgstr "Types de plateformes"
+
+msgid "Ships"
+msgstr "Navires"
+
+msgid "Buoys"
+msgstr "Bouées"
+
+msgid "Shore Stations"
+msgstr "Stations côtières"
+
+msgid "Drifters"
+msgstr "Dériveurs"
+
+msgid "Other"
+msgstr "Autres"
+
+msgid "Lat"
+msgstr "Lat"
+
+msgid "Lon"
+msgstr "Lon"
+
+msgid "from"
+msgstr "de"
+
+msgid "to"
+msgstr "à"
+
+msgid "Get from\nViewport"
+msgstr "Vue\ncourante"
+
+msgid "Latitude: −90.0 to 90.0  ·  Longitude: −180.0 to 180.0"
+msgstr "Latitude : −90.0 à 90.0  ·  Longitude : −180.0 à 180.0"
+
+msgid "Ready"
+msgstr "Prêt"
+
+# Fetch tab — status messages
+msgid "Select at least one platform type"
+msgstr "Sélectionnez au moins un type de plateforme"
+
+msgid "Fetching..."
+msgstr "Chargement..."
+
+msgid "Error: %s"
+msgstr "Erreur : %s"
+
+# Settings tab / settings dialog
+msgid "Ship Obs Settings"
+msgstr "Paramètres Ship Obs"
+
+msgid "Server"
+msgstr "Serveur"
+
+msgid "Server URL:"
+msgstr "URL du serveur :"
+
+msgid "Display"
+msgstr "Affichage"
+
+msgid "Show wind barbs"
+msgstr "Afficher les barbules de vent"
+
+msgid "Show station labels"
+msgstr "Afficher les étiquettes"
+
+msgid "Hover popup"
+msgstr "Info-bulle au survol"
+
+msgid "Double-click sticky window"
+msgstr "Double-clic fenêtre fixe"
+
+msgid "Both"
+msgstr "Les deux"
+
+msgid "Station info"
+msgstr "Info station"
+
+# Coord validation
+msgid "Please enter valid coordinates: Latitude −90.0 to 90.0, Longitude −180.0 to 180.0"
+msgstr "Entrez des coordonnées valides : Latitude −90.0 à 90.0, Longitude −180.0 à 180.0"
+
+msgid "Latitude min ≥ Latitude max — area may be empty"
+msgstr "Latitude min ≥ Latitude max — la zone peut être vide"
+
+# Station popup / info frame
+msgid "Station: %s  [%s]\n"
+msgstr "Station : %s  [%s]\n"
+
+msgid "Country: %s\n"
+msgstr "Pays : %s\n"
+
+msgid "Pos: %.3f°, %.3f°\n"
+msgstr "Pos : %.3f°, %.3f°\n"
+
+msgid "Wind: %s @ %s"
+msgstr "Vent : %s à %s"
+
+msgid "  Gust: %.1f kts"
+msgstr "  Rafales : %.1f nd"
+
+msgid "--"
+msgstr "--"
+
+msgid "%.1f kts"
+msgstr "%.1f nd"
+
+msgid "Pressure: %.1f hPa\n"
+msgstr "Pression : %.1f hPa\n"
+
+msgid "Air temp: %.1f °C\n"
+msgstr "Temp. air : %.1f °C\n"
+
+msgid "Sea temp: %.1f °C\n"
+msgstr "Temp. mer : %.1f °C\n"
+
+msgid "Wave ht: %.1f m\n"
+msgstr "Haut. vague : %.1f m\n"
+
+msgid "Visibility: %.1f nm\n"
+msgstr "Visibilité : %.1f nm\n"
+
+# GPX export — description field labels
+msgid "Timestamp: %s UTC\n"
+msgstr "Horodatage : %s UTC\n"
+
+msgid "Station: %s (%s)\n"
+msgstr "Station : %s (%s)\n"
+
+msgid "Wind direction: %d°T\n"
+msgstr "Direction du vent : %d°V\n"
+
+msgid "Wind speed: %.1f kts\n"
+msgstr "Vitesse du vent : %.1f nd\n"
+
+msgid "Gust: %.1f kts\n"
+msgstr "Rafale : %.1f nd\n"
+
+msgid "Pressure"
+msgstr "Pression"
+
+msgid "Air temperature: %.1f °C\n"
+msgstr "Température de l'air : %.1f °C\n"
+
+msgid "Sea temperature: %.1f °C\n"
+msgstr "Température de la mer : %.1f °C\n"
+
+msgid "Wave height"
+msgstr "Hauteur de vague"
+
+msgid "Visibility"
+msgstr "Visibilité"
+
+msgid "\n\nFetched: %s"
+msgstr "\n\nRécupéré le : %s"
+
+# GPX export — dialogs and errors
+msgid "Failed to load station data from disk"
+msgstr "Impossible de charger les données de la station"
+
+msgid "Error"
+msgstr "Erreur"
+
+msgid "GPX files (*.gpx)|*.gpx"
+msgstr "Fichiers GPX (*.gpx)|*.gpx"
+
+msgid "Failed to write %s"
+msgstr "Impossible d'écrire %s"
+
+# HTTP / server errors
+msgid "JSON parse error"
+msgstr "Erreur d'analyse JSON"
+
+msgid "Missing 'stations' array in response"
+msgstr "Tableau 'stations' absent de la réponse"
+
+msgid "Failed to initialize HTTP client"
+msgstr "Impossible d'initialiser le client HTTP"
+
+msgid "Failed to connect to server: %s"
+msgstr "Connexion au serveur impossible : %s"
+
+msgid "Empty response from server"
+msgstr "Réponse vide du serveur"
+
+msgid "Server returned HTTP %ld"
+msgstr "Le serveur a renvoyé HTTP %ld"

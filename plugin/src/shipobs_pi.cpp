@@ -1,15 +1,19 @@
 #include "shipobs_pi.h"
-#include "request_dialog.h"
+#include "ship_reports_plugin_dialog.h"
 #include "render_overlay.h"
 #include "station_popup.h"
+#include "station_info_frame.h"
 #include "settings_dialog.h"
 
 #include <wx/app.h>
+#include <wx/intl.h>
 #include <wx/fileconf.h>
 #include <wx/file.h>
+#include <wx/log.h>
 #include <wx/jsonreader.h>
 #include <wx/jsonwriter.h>
 #include <wx/jsonval.h>
+#include <algorithm>
 #include <cmath>
 
 
@@ -32,8 +36,8 @@ shipobs_pi::shipobs_pi(void *ppimgr)
       m_cursor_lat(0), m_cursor_lon(0),
       m_server_url(wxT("http://localhost:8080")),
       m_show_wind_barbs(true),
-      m_show_labels(true),
-      m_hover_mode(true),
+      m_show_labels(false),
+      m_info_mode(2),
       m_erase_history_after(0),
       m_vp_valid(false) {}
 
@@ -42,6 +46,7 @@ shipobs_pi::~shipobs_pi() {}
 // ---------- Required PlugIn Methods ----------
 
 int shipobs_pi::Init(void) {
+    AddLocaleCatalog(_T("opencpn-shipobs_pi"));
     m_parent_window = GetOCPNCanvasWindow();
 
     // Hide the station popup when OpenCPN loses focus. On X11, wxPopupWindow
@@ -62,9 +67,9 @@ int shipobs_pi::Init(void) {
     }
 
     m_toolbar_id = InsertPlugInTool(
-        wxT("Ship Obs"), &m_toolbar_bitmap, &m_toolbar_bitmap,
-        wxITEM_NORMAL, wxT("Ship & Buoy Observations"),
-        wxT("Display ship and buoy observation data on the chart"),
+        _("Ship Obs"), &m_toolbar_bitmap, &m_toolbar_bitmap,
+        wxITEM_NORMAL, _("Ship & Buoy Observations"),
+        _("Display ship and buoy observation data on the chart"),
         nullptr, -1, 0, this);
 
     LoadConfig();
@@ -90,6 +95,9 @@ bool shipobs_pi::DeInit(void) {
         m_station_popup->Destroy();
         m_station_popup = nullptr;
     }
+    for (StationInfoFrame *f : m_info_frames)
+        f->Destroy();
+    m_info_frames.clear();
 
     wxTheApp->Unbind(wxEVT_ACTIVATE_APP, &shipobs_pi::OnParentActivate, this);
 
@@ -104,15 +112,15 @@ int shipobs_pi::GetPlugInVersionMinor() { return PLUGIN_VERSION_MINOR; }
 
 wxBitmap *shipobs_pi::GetPlugInBitmap() { return &m_toolbar_bitmap; }
 
-wxString shipobs_pi::GetCommonName() { return wxT("ShipObs"); }
+wxString shipobs_pi::GetCommonName() { return wxT("Ship Reports"); }
 wxString shipobs_pi::GetShortDescription() {
-    return wxT("Ship & Buoy Observation Plugin for OpenCPN");
+    return _("Ship & Buoy Observation Plugin for OpenCPN");
 }
 wxString shipobs_pi::GetLongDescription() {
-    return wxT("Displays real-time ship and buoy meteorological/oceanographic "
-               "observations on the chart. Data is fetched from a configurable "
-               "observation server and rendered as color-coded markers with "
-               "wind barbs and station labels.");
+    return _("Displays real-time ship and buoy meteorological/oceanographic "
+             "observations on the chart. Data is fetched from a configurable "
+             "observation server and rendered as color-coded markers with "
+             "wind barbs and station labels.");
 }
 
 // ---------- Optional Method Overrides ----------
@@ -123,7 +131,7 @@ void shipobs_pi::OnToolbarToolCallback(int id) {
     if (id != m_toolbar_id) return;
 
     if (!m_request_dialog) {
-        m_request_dialog = new RequestDialog(m_parent_window, this);
+        m_request_dialog = new ShipReportsPluginDialog(m_parent_window, this);
     }
     bool will_show = !m_request_dialog->IsShown();
     if (m_vp_valid) {
@@ -159,6 +167,18 @@ bool shipobs_pi::MouseEventHook(wxMouseEvent &event) {
                               m_vp, m_station_popup, m_parent_window);
 }
 
+static void RepositionInfoFrames(std::vector<StationInfoFrame*> &frames,
+                                  PlugIn_ViewPort *vp,
+                                  wxWindow *parent) {
+    if (frames.empty()) return;
+    PlugIn_ViewPort vp_copy = *vp;
+    for (StationInfoFrame *f : frames) {
+        wxPoint st_px;
+        GetCanvasPixLL(&vp_copy, &st_px, f->GetLat(), f->GetLon());
+        f->Reposition(parent->ClientToScreen(st_px));
+    }
+}
+
 bool shipobs_pi::RenderGLOverlayMultiCanvas(wxGLContext *pcontext,
                                             PlugIn_ViewPort *vp,
                                             int canvasIndex) {
@@ -166,6 +186,7 @@ bool shipobs_pi::RenderGLOverlayMultiCanvas(wxGLContext *pcontext,
     m_vp = *vp;
     m_vp_valid = true;
     RenderStationsGL(this, vp);
+    RepositionInfoFrames(m_info_frames, vp, m_parent_window);
     return true;
 }
 
@@ -175,11 +196,39 @@ bool shipobs_pi::RenderOverlayMultiCanvas(wxDC &dc, PlugIn_ViewPort *vp,
     m_vp = *vp;
     m_vp_valid = true;
     RenderStationsDC(this, dc, vp);
+    RepositionInfoFrames(m_info_frames, vp, m_parent_window);
     return true;
+}
+
+void shipobs_pi::OpenOrFocusInfoFrame(const ObservationStation &st,
+                                      const wxPoint &station_screen) {
+    for (StationInfoFrame *f : m_info_frames) {
+        if (f->GetStationId() == st.id) {
+            f->Raise();
+            return;
+        }
+    }
+    StationInfoFrame *frame =
+        new StationInfoFrame(m_parent_window, this, st, station_screen);
+    m_info_frames.push_back(frame);
+}
+
+bool shipobs_pi::IsStationHighlighted(const wxString &id) const {
+    for (StationInfoFrame *f : m_info_frames)
+        if (f->IsHighlighted() && f->GetStationId() == id)
+            return true;
+    return false;
+}
+
+void shipobs_pi::RemoveInfoFrame(StationInfoFrame *frame) {
+    auto it = std::find(m_info_frames.begin(), m_info_frames.end(), frame);
+    if (it != m_info_frames.end())
+        m_info_frames.erase(it);
 }
 
 void shipobs_pi::SetStations(const ObservationList &stations) {
     m_stations = stations;
+    InvalidateLabelCache();
     RequestRefresh(m_parent_window);
 }
 
@@ -193,8 +242,8 @@ void shipobs_pi::LoadConfig() {
     conf->SetPath(wxT("/PlugIns/ShipObs"));
     conf->Read(wxT("ServerURL"), &m_server_url, wxT("http://localhost:8080"));
     conf->Read(wxT("ShowWindBarbs"), &m_show_wind_barbs, true);
-    conf->Read(wxT("ShowLabels"), &m_show_labels, true);
-    conf->Read(wxT("HoverMode"), &m_hover_mode, true);
+    conf->Read(wxT("ShowLabels"), &m_show_labels, false);
+    conf->Read(wxT("InfoMode"), &m_info_mode, 2);
     conf->Read(wxT("EraseHistoryAfter"), &m_erase_history_after, 0);
 }
 
@@ -206,7 +255,7 @@ void shipobs_pi::SaveConfig() {
     conf->Write(wxT("ServerURL"), m_server_url);
     conf->Write(wxT("ShowWindBarbs"), m_show_wind_barbs);
     conf->Write(wxT("ShowLabels"), m_show_labels);
-    conf->Write(wxT("HoverMode"), m_hover_mode);
+    conf->Write(wxT("InfoMode"), m_info_mode);
     conf->Write(wxT("EraseHistoryAfter"), m_erase_history_after);
 }
 
@@ -394,7 +443,10 @@ void shipobs_pi::AppendFetch(const FetchRecord &rec,
     new_records.Append(r);
     root[wxT("records")] = new_records;
 
-    WriteHistoryFile(root);
+    if (!WriteHistoryFile(root))
+        wxLogError("ShipObs: failed to write history file");
+    else
+        wxLogMessage("ShipObs: saved fetch record (%zu station(s))", stations.size());
     LoadHistory();
 }
 

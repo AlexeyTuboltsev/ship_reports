@@ -3,8 +3,14 @@
 #include "observation.h"
 
 #include <cmath>
+#include <map>
+#include <vector>
 #include <GL/gl.h>
 
+#include <wx/bitmap.h>
+#include <wx/image.h>
+#include <wx/dcmemory.h>
+#include <wx/font.h>
 #include <wx/datetime.h>
 
 // Marker size in pixels
@@ -170,11 +176,103 @@ static void DrawWindBarbGL(float px, float py, double dir_deg, double spd_kt) {
     }
 }
 
+// ---------- GL label texture cache ----------
+
+struct LabelTex { GLuint id; int w, h; };
+static std::map<wxString, LabelTex> s_label_cache;
+static bool s_cache_dirty = false;
+
+void InvalidateLabelCache() { s_cache_dirty = true; }
+
+static void ClearLabelCache() {
+    for (auto &kv : s_label_cache)
+        glDeleteTextures(1, &kv.second.id);
+    s_label_cache.clear();
+    s_cache_dirty = false;
+}
+
+// Returns a cached GL texture for the given text, creating it if needed.
+static const LabelTex *GetOrCreateLabelTex(const wxString &text) {
+    auto it = s_label_cache.find(text);
+    if (it != s_label_cache.end())
+        return &it->second;
+
+    wxFont font(8, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
+
+    // Measure
+    wxCoord tw = 1, th = 1;
+    {
+        wxBitmap tmp(1, 1);
+        wxMemoryDC mdc(tmp);
+        mdc.SetFont(font);
+        mdc.GetTextExtent(text, &tw, &th);
+        tw += 2; th += 2;
+    }
+
+    // Render white text on black background
+    wxBitmap bmp(tw, th);
+    {
+        wxMemoryDC mdc(bmp);
+        mdc.SetFont(font);
+        mdc.SetBackground(*wxBLACK_BRUSH);
+        mdc.Clear();
+        mdc.SetTextForeground(*wxWHITE);
+        mdc.DrawText(text, 1, 1);
+    }
+
+    // Convert to RGBA: use luminance as alpha, colour set at draw time via glColor
+    wxImage img = bmp.ConvertToImage();
+    std::vector<unsigned char> px(tw * th * 4);
+    for (int y = 0; y < th; y++) {
+        for (int x = 0; x < tw; x++) {
+            unsigned char a = img.GetRed(x, y);  // black bg → 0, white text → 255
+            px[4 * (y * tw + x) + 0] = 255;  // colour applied by glColor
+            px[4 * (y * tw + x) + 1] = 255;
+            px[4 * (y * tw + x) + 2] = 255;
+            px[4 * (y * tw + x) + 3] = a;
+        }
+    }
+
+    GLuint tex;
+    glGenTextures(1, &tex);
+    glBindTexture(GL_TEXTURE_2D, tex);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, tw, th, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, px.data());
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+    LabelTex lt{tex, (int)tw, (int)th};
+    s_label_cache[text] = lt;
+    return &s_label_cache[text];
+}
+
+static void DrawLabelGL(const wxString &text, float px, float py, float alpha) {
+    const LabelTex *lt = GetOrCreateLabelTex(text);
+    if (!lt) return;
+
+    float x = px + MARKER_SIZE + 3;
+    float y = py - lt->h / 2.0f;
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, lt->id);
+    glColor4f(0.3f, 0.3f, 0.3f, alpha);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex2f(x,           y);
+    glTexCoord2f(1, 0); glVertex2f(x + lt->w,   y);
+    glTexCoord2f(1, 1); glVertex2f(x + lt->w,   y + lt->h);
+    glTexCoord2f(0, 1); glVertex2f(x,            y + lt->h);
+    glEnd();
+    glDisable(GL_TEXTURE_2D);
+}
+
 // ---------- GL Rendering ----------
 
 void RenderStationsGL(shipobs_pi *plugin, PlugIn_ViewPort *vp) {
     const ObservationList &stations = plugin->GetStations();
     if (stations.empty()) return;
+
+    if (s_cache_dirty) ClearLabelCache();
 
     bool show_barbs = plugin->GetShowWindBarbs();
     bool show_labels = plugin->GetShowLabels();
@@ -201,6 +299,12 @@ void RenderStationsGL(shipobs_pi *plugin, PlugIn_ViewPort *vp) {
         float r, g, b;
         TypeColor(st.type, r, g, b);
 
+        // Yellow halo if a sticky info frame for this station is active/hovered
+        if (plugin->IsStationHighlighted(st.id)) {
+            glColor4f(243/255.0f, 229/255.0f, 47/255.0f, 0.75f);
+            DrawCircleGL(px, py, MARKER_SIZE + 7);
+        }
+
         // Draw marker fill
         glColor4f(r, g, b, opacity);
         DrawMarkerGL(st.type, px, py);
@@ -217,8 +321,9 @@ void RenderStationsGL(shipobs_pi *plugin, PlugIn_ViewPort *vp) {
             DrawWindBarbGL(px, py, st.wind_dir, st.wind_spd);
         }
 
-        // Station label (GL text not easily available; labels drawn in DC fallback)
-        (void)show_labels;
+        if (show_labels && !st.id.IsEmpty()) {
+            DrawLabelGL(st.id, px, py, opacity);
+        }
     }
 
     glDisable(GL_BLEND);
@@ -260,7 +365,7 @@ void RenderStationsDC(shipobs_pi *plugin, wxDC &dc, PlugIn_ViewPort *vp) {
 
     bool show_labels = plugin->GetShowLabels();
 
-    dc.SetTextForeground(*wxBLACK);
+    dc.SetTextForeground(wxColour(77, 77, 77));  // dark gray
     wxFont font(8, wxFONTFAMILY_SWISS, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL);
     dc.SetFont(font);
 
@@ -283,6 +388,13 @@ void RenderStationsDC(shipobs_pi *plugin, wxDC &dc, PlugIn_ViewPort *vp) {
             (col.Red() * alpha + 255 * (255 - alpha)) / 255,
             (col.Green() * alpha + 255 * (255 - alpha)) / 255,
             (col.Blue() * alpha + 255 * (255 - alpha)) / 255);
+
+        // Yellow halo
+        if (plugin->IsStationHighlighted(st.id)) {
+            dc.SetBrush(wxBrush(wxColour(243, 229, 47)));
+            dc.SetPen(wxPen(wxColour(243, 229, 47), 1));
+            dc.DrawCircle(pt.x, pt.y, MARKER_SIZE + 7);
+        }
 
         dc.SetBrush(wxBrush(blended));
         dc.SetPen(wxPen(*wxBLACK, 1));

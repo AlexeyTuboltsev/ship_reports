@@ -65,6 +65,19 @@ find_package(CURL REQUIRED)
 set(OPENCPN_INCLUDE_DIR "/home/lexey/OpenCPN/include"
     CACHE PATH "Path to OpenCPN include directory")
 
+# Generate info_html.h from INFO.md at build time
+set(GENERATED_INFO_HEADER ${CMAKE_CURRENT_BINARY_DIR}/info_html.h)
+add_custom_command(
+    OUTPUT  ${GENERATED_INFO_HEADER}
+    COMMAND python3 ${CMAKE_CURRENT_SOURCE_DIR}/tools/gen_info_html.py
+                    ${CMAKE_CURRENT_SOURCE_DIR}/INFO.md
+                    ${GENERATED_INFO_HEADER}
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/INFO.md
+            ${CMAKE_CURRENT_SOURCE_DIR}/tools/gen_info_html.py
+    COMMENT "Generating info_html.h from INFO.md"
+    VERBATIM
+)
+
 # Sources
 set(SRC_PLUGIN
     src/shipobs_pi.h
@@ -72,12 +85,14 @@ set(SRC_PLUGIN
     src/observation.h
     src/server_client.h
     src/server_client.cpp
-    src/request_dialog.h
-    src/request_dialog.cpp
+    src/ship_reports_plugin_dialog.h
+    src/ship_reports_plugin_dialog.cpp
     src/render_overlay.h
     src/render_overlay.cpp
     src/station_popup.h
     src/station_popup.cpp
+    src/station_info_frame.h
+    src/station_info_frame.cpp
     src/settings_dialog.h
     src/settings_dialog.cpp
 )
@@ -93,7 +108,7 @@ set(SRC_WXJSON
 )
 
 set(BUILD_SHARED_LIBS ON)
-add_library(${PACKAGE_NAME} SHARED ${SRC_PLUGIN} ${SRC_WXJSON})
+add_library(${PACKAGE_NAME} SHARED ${SRC_PLUGIN} ${SRC_WXJSON} ${GENERATED_INFO_HEADER})
 
 if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang|GNU")
     target_compile_options(${PACKAGE_NAME} PRIVATE -fvisibility=hidden)
@@ -105,6 +120,7 @@ target_include_directories(${PACKAGE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/wx
     ${OPENCPN_INCLUDE_DIR}
     ${CURL_INCLUDE_DIRS}
+    ${CMAKE_CURRENT_BINARY_DIR}   # for generated info_html.h
 )
 
 if(wxWidgets_FOUND)
@@ -125,4 +141,50 @@ endif()
 # Install
 if(UNIX AND NOT APPLE)
     install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
+endif()
+
+# Translations: compile .po → .mo and install alongside OpenCPN locale tree
+find_package(Gettext)
+if(GETTEXT_FOUND)
+    file(GLOB PO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/po/*.po")
+    set(MO_FILES)
+    foreach(PO_FILE ${PO_FILES})
+        get_filename_component(LANG ${PO_FILE} NAME_WE)
+        set(MO_FILE "${CMAKE_CURRENT_BINARY_DIR}/${LANG}.mo")
+        add_custom_command(
+            OUTPUT  "${MO_FILE}"
+            COMMAND ${GETTEXT_MSGFMT_EXECUTABLE} -o "${MO_FILE}" "${PO_FILE}"
+            DEPENDS "${PO_FILE}"
+            COMMENT "Compiling translation: ${LANG}"
+            VERBATIM
+        )
+        list(APPEND MO_FILES "${MO_FILE}")
+        if(UNIX AND NOT APPLE)
+            install(FILES "${MO_FILE}"
+                DESTINATION "share/opencpn/locale/${LANG}/LC_MESSAGES"
+                RENAME "opencpn-${PACKAGE_NAME}.mo"
+            )
+        endif()
+    endforeach()
+    if(MO_FILES)
+        add_custom_target(translations ALL DEPENDS ${MO_FILES})
+    endif()
+
+    # Developer target: regenerate .pot template from source
+    find_program(XGETTEXT_EXECUTABLE xgettext)
+    if(XGETTEXT_EXECUTABLE)
+        add_custom_target(update_pot
+            COMMAND ${XGETTEXT_EXECUTABLE}
+                    --keyword=_
+                    --language=C++
+                    --add-comments=TRANSLATORS
+                    --sort-output
+                    --package-name=${PACKAGE_NAME}
+                    --output=${CMAKE_CURRENT_SOURCE_DIR}/po/${PACKAGE_NAME}.pot
+                    --files-from=${CMAKE_CURRENT_SOURCE_DIR}/po/POTFILES.in
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMENT "Updating po/${PACKAGE_NAME}.pot from source"
+            VERBATIM
+        )
+    endif()
 endif()
