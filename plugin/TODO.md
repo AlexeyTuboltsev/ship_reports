@@ -25,6 +25,7 @@
 - [ ] UI / integration tests for the plugin (layer export flow, incompatible-host dialog)
 - [ ] how are UI strings/translations handled in ocpn?
 - [ ] Add logging for fetches and errors to OpenCPN main log
+- [ ] Add info tab with explanation what it is and what are our sources. 
 
 ## Questions for the OpenCPN team
 

@@ -412,7 +412,7 @@ static wxString FmtObs(const wxString &label, double val, const wxString &unit) 
 }
 
 // Write stations as GPX waypoints to a file.
-static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
+static bool WriteGPXFile(const wxString &filepath, const wxDateTime &fetched_at,
                          const ObservationList &stations) {
     wxFile f;
     if (!f.Open(filepath, wxFile::write)) return false;
@@ -433,21 +433,31 @@ static bool WriteGPXFile(const wxString &filepath, const wxString &fetch_label,
 
         wxString desc;
         if (st.time.IsValid())
-            desc += wxString::Format(wxT("Obs time: %s UTC\n"),
-                                     st.time.Format(wxT("%Y-%m-%d %H:%M")));
-        desc += wxString::Format(wxT("Fetched: %s\n"), fetch_label);
+            desc += wxString::Format(wxT("Timestamp: %s UTC\n"),
+                                     st.time.Format(wxT("%b %d, %Y %H:%M")));
         desc += wxString::Format(wxT("Station: %s (%s)\n"), st.id, st.type);
         if (!st.country.IsEmpty())
             desc += wxString::Format(wxT("Country: %s\n"), st.country);
-        desc += FmtObs(wxT("Wind dir"),  st.wind_dir, wxT("deg"));
-        desc += FmtObs(wxT("Wind spd"),  st.wind_spd, wxT("m/s"));
-        desc += FmtObs(wxT("Gust"),      st.gust,     wxT("m/s"));
-        desc += FmtObs(wxT("Pressure"),  st.pressure, wxT("hPa"));
-        desc += FmtObs(wxT("Air temp"),  st.air_temp, wxT("°C"));
-        desc += FmtObs(wxT("Sea temp"),  st.sea_temp, wxT("°C"));
-        desc += FmtObs(wxT("Wave ht"),   st.wave_ht,  wxT("m"));
-        desc += FmtObs(wxT("Visibility"),st.vis,      wxT("nm"));
+        if (!std::isnan(st.wind_dir))
+            desc += wxString::Format(wxT("Wind direction: %d\u00b0T\n"),
+                                     (int)std::round(st.wind_dir));
+        if (!std::isnan(st.wind_spd))
+            desc += wxString::Format(wxT("Wind speed: %.1f kts\n"),
+                                     st.wind_spd * 1.94384);
+        if (!std::isnan(st.gust))
+            desc += wxString::Format(wxT("Gust: %.1f kts\n"),
+                                     st.gust * 1.94384);
+        desc += FmtObs(wxT("Pressure"),      st.pressure, wxT("hPa"));
+        if (!std::isnan(st.air_temp))
+            desc += wxString::Format(wxT("Air temperature: %.1f \u00b0C\n"), st.air_temp);
+        if (!std::isnan(st.sea_temp))
+            desc += wxString::Format(wxT("Sea temperature: %.1f \u00b0C\n"), st.sea_temp);
+        desc += FmtObs(wxT("Wave height"),   st.wave_ht,  wxT("m"));
+        desc += FmtObs(wxT("Visibility"),    st.vis,      wxT("nm"));
         desc.Trim();
+        if (fetched_at.IsValid())
+            desc += wxString::Format(wxT("\n\nFetched: %s"),
+                                     fetched_at.Format(wxT("%Y-%m-%dT%H:%M:%SZ")));
 
         gpx += wxString::Format(wxT("    <desc>%s</desc>\n"), desc);
 
@@ -490,7 +500,7 @@ void RequestDialog::OnExportGPX(wxCommandEvent & /*event*/) {
                      wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
     if (dlg.ShowModal() != wxID_OK) return;
 
-    if (!WriteGPXFile(dlg.GetPath(), rec.label, stations)) {
+    if (!WriteGPXFile(dlg.GetPath(), rec.fetched_at, stations)) {
         wxMessageBox(wxString::Format(wxT("Failed to write %s"), dlg.GetPath()),
                      wxT("Error"), wxOK | wxICON_ERROR, this);
     }
