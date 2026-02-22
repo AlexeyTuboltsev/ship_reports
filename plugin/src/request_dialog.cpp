@@ -160,6 +160,40 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     p2->SetSizer(p2Sizer);
     m_notebook->AddPage(p2, wxT("Fetch new"));
 
+    // ── Tab 3: Settings ───────────────────────────────────────────────────────
+
+    wxPanel *p3 = new wxPanel(m_notebook, wxID_ANY);
+    wxBoxSizer *p3Sizer = new wxBoxSizer(wxVERTICAL);
+
+    wxStaticBoxSizer *serverBox =
+        new wxStaticBoxSizer(wxVERTICAL, p3, wxT("Server"));
+    serverBox->Add(new wxStaticText(p3, wxID_ANY, wxT("Server URL:")),
+                   0, wxALL, 2);
+    m_settings_url = new wxTextCtrl(p3, wxID_ANY, wxEmptyString,
+                                    wxDefaultPosition, wxSize(300, -1));
+    serverBox->Add(m_settings_url, 0, wxALL | wxEXPAND, 4);
+    p3Sizer->Add(serverBox, 0, wxALL | wxEXPAND, 6);
+
+    wxStaticBoxSizer *dispBox =
+        new wxStaticBoxSizer(wxVERTICAL, p3, wxT("Display"));
+    m_settings_wind_barbs = new wxCheckBox(p3, wxID_ANY, wxT("Show wind barbs"));
+    m_settings_labels     = new wxCheckBox(p3, wxID_ANY, wxT("Show station labels"));
+    dispBox->Add(m_settings_wind_barbs, 0, wxALL, 4);
+    dispBox->Add(m_settings_labels,     0, wxALL, 4);
+    p3Sizer->Add(dispBox, 0, wxALL | wxEXPAND, 6);
+
+    wxArrayString infoModes;
+    infoModes.Add(wxT("Hover popup"));
+    infoModes.Add(wxT("Double-click sticky window"));
+    infoModes.Add(wxT("Both"));
+    m_settings_info_mode = new wxRadioBox(p3, wxID_ANY, wxT("Station info"),
+                                          wxDefaultPosition, wxDefaultSize,
+                                          infoModes, 1, wxRA_SPECIFY_ROWS);
+    p3Sizer->Add(m_settings_info_mode, 0, wxALL | wxEXPAND, 6);
+
+    p3->SetSizer(p3Sizer);
+    m_notebook->AddPage(p3, wxT("Settings"));
+
     // ── Common area ───────────────────────────────────────────────────────────
 
     topSizer->Add(m_notebook, 1, wxEXPAND);
@@ -174,8 +208,17 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
     m_lon_min_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
     m_lon_max_ctrl->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnCoordBlur, this);
 
+    m_settings_url->Bind(wxEVT_KILL_FOCUS, &RequestDialog::OnSettingsUrlBlur, this);
+    m_settings_wind_barbs->Bind(wxEVT_CHECKBOX,
+        [this](wxCommandEvent&) { ApplySettings(); });
+    m_settings_labels->Bind(wxEVT_CHECKBOX,
+        [this](wxCommandEvent&) { ApplySettings(); });
+    m_settings_info_mode->Bind(wxEVT_RADIOBOX,
+        [this](wxCommandEvent&) { ApplySettings(); });
+
     PopulateAreaControls();
     ValidateCoords();
+    PopulateSettingsControls();
 
     // Initial tab: history list if non-empty, fetch form otherwise
     m_notebook->SetSelection(m_plugin->GetFetchHistory().empty() ? 1 : 0);
@@ -187,6 +230,27 @@ RequestDialog::RequestDialog(wxWindow *parent, shipobs_pi *plugin)
 }
 
 RequestDialog::~RequestDialog() {}
+
+void RequestDialog::PopulateSettingsControls() {
+    m_settings_url->SetValue(m_plugin->GetServerURL());
+    m_settings_wind_barbs->SetValue(m_plugin->GetShowWindBarbs());
+    m_settings_labels->SetValue(m_plugin->GetShowLabels());
+    m_settings_info_mode->SetSelection(m_plugin->GetInfoMode());
+}
+
+void RequestDialog::ApplySettings() {
+    m_plugin->SetServerURL(m_settings_url->GetValue());
+    m_plugin->SetShowWindBarbs(m_settings_wind_barbs->GetValue());
+    m_plugin->SetShowLabels(m_settings_labels->GetValue());
+    m_plugin->SetInfoMode(m_settings_info_mode->GetSelection());
+    m_plugin->SaveConfig();
+    RequestRefresh(m_plugin->GetParentWindow());
+}
+
+void RequestDialog::OnSettingsUrlBlur(wxFocusEvent &event) {
+    ApplySettings();
+    event.Skip();
+}
 
 void RequestDialog::PopulateAreaControls() {
     auto fmt = [](double v) -> wxString {

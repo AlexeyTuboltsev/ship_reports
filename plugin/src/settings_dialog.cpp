@@ -45,12 +45,13 @@ SettingsDialog::SettingsDialog(wxWindow *parent, shipobs_pi *plugin)
 
     // Info trigger
     wxArrayString triggers;
-    triggers.Add(wxT("Hover"));
-    triggers.Add(wxT("Click"));
-    m_info_trigger = new wxRadioBox(this, wxID_ANY, wxT("Station Info Trigger"),
+    triggers.Add(wxT("Hover popup"));
+    triggers.Add(wxT("Double-click sticky window"));
+    triggers.Add(wxT("Both"));
+    m_info_trigger = new wxRadioBox(this, wxID_ANY, wxT("Station info"),
                                     wxDefaultPosition, wxDefaultSize,
                                     triggers, 1, wxRA_SPECIFY_ROWS);
-    m_info_trigger->SetSelection(plugin->GetHoverMode() ? 0 : 1);
+    m_info_trigger->SetSelection(plugin->GetInfoMode());
     topSizer->Add(m_info_trigger, 0, wxALL | wxEXPAND, 4);
 
     // Buttons
@@ -69,7 +70,7 @@ void SettingsDialog::OnOK(wxCommandEvent &event) {
     m_plugin->SetServerURL(m_server_url->GetValue());
     m_plugin->SetShowWindBarbs(m_wind_barbs->GetValue());
     m_plugin->SetShowLabels(m_labels->GetValue());
-    m_plugin->SetHoverMode(m_info_trigger->GetSelection() == 0);
+    m_plugin->SetInfoMode(m_info_trigger->GetSelection());
 
     EndModal(wxID_OK);
 }

@@ -2,6 +2,7 @@
 #include "request_dialog.h"
 #include "render_overlay.h"
 #include "station_popup.h"
+#include "station_info_frame.h"
 #include "settings_dialog.h"
 
 #include <wx/app.h>
@@ -10,6 +11,7 @@
 #include <wx/jsonreader.h>
 #include <wx/jsonwriter.h>
 #include <wx/jsonval.h>
+#include <algorithm>
 #include <cmath>
 
 
@@ -32,8 +34,8 @@ shipobs_pi::shipobs_pi(void *ppimgr)
       m_cursor_lat(0), m_cursor_lon(0),
       m_server_url(wxT("http://localhost:8080")),
       m_show_wind_barbs(true),
-      m_show_labels(true),
-      m_hover_mode(true),
+      m_show_labels(false),
+      m_info_mode(2),
       m_erase_history_after(0),
       m_vp_valid(false) {}
 
@@ -90,6 +92,9 @@ bool shipobs_pi::DeInit(void) {
         m_station_popup->Destroy();
         m_station_popup = nullptr;
     }
+    for (StationInfoFrame *f : m_info_frames)
+        f->Destroy();
+    m_info_frames.clear();
 
     wxTheApp->Unbind(wxEVT_ACTIVATE_APP, &shipobs_pi::OnParentActivate, this);
 
@@ -159,6 +164,18 @@ bool shipobs_pi::MouseEventHook(wxMouseEvent &event) {
                               m_vp, m_station_popup, m_parent_window);
 }
 
+static void RepositionInfoFrames(std::vector<StationInfoFrame*> &frames,
+                                  PlugIn_ViewPort *vp,
+                                  wxWindow *parent) {
+    if (frames.empty()) return;
+    PlugIn_ViewPort vp_copy = *vp;
+    for (StationInfoFrame *f : frames) {
+        wxPoint st_px;
+        GetCanvasPixLL(&vp_copy, &st_px, f->GetLat(), f->GetLon());
+        f->Reposition(parent->ClientToScreen(st_px));
+    }
+}
+
 bool shipobs_pi::RenderGLOverlayMultiCanvas(wxGLContext *pcontext,
                                             PlugIn_ViewPort *vp,
                                             int canvasIndex) {
@@ -166,6 +183,7 @@ bool shipobs_pi::RenderGLOverlayMultiCanvas(wxGLContext *pcontext,
     m_vp = *vp;
     m_vp_valid = true;
     RenderStationsGL(this, vp);
+    RepositionInfoFrames(m_info_frames, vp, m_parent_window);
     return true;
 }
 
@@ -175,11 +193,39 @@ bool shipobs_pi::RenderOverlayMultiCanvas(wxDC &dc, PlugIn_ViewPort *vp,
     m_vp = *vp;
     m_vp_valid = true;
     RenderStationsDC(this, dc, vp);
+    RepositionInfoFrames(m_info_frames, vp, m_parent_window);
     return true;
+}
+
+void shipobs_pi::OpenOrFocusInfoFrame(const ObservationStation &st,
+                                      const wxPoint &station_screen) {
+    for (StationInfoFrame *f : m_info_frames) {
+        if (f->GetStationId() == st.id) {
+            f->Raise();
+            return;
+        }
+    }
+    StationInfoFrame *frame =
+        new StationInfoFrame(m_parent_window, this, st, station_screen);
+    m_info_frames.push_back(frame);
+}
+
+bool shipobs_pi::IsStationHighlighted(const wxString &id) const {
+    for (StationInfoFrame *f : m_info_frames)
+        if (f->IsHighlighted() && f->GetStationId() == id)
+            return true;
+    return false;
+}
+
+void shipobs_pi::RemoveInfoFrame(StationInfoFrame *frame) {
+    auto it = std::find(m_info_frames.begin(), m_info_frames.end(), frame);
+    if (it != m_info_frames.end())
+        m_info_frames.erase(it);
 }
 
 void shipobs_pi::SetStations(const ObservationList &stations) {
     m_stations = stations;
+    InvalidateLabelCache();
     RequestRefresh(m_parent_window);
 }
 
@@ -193,8 +239,8 @@ void shipobs_pi::LoadConfig() {
     conf->SetPath(wxT("/PlugIns/ShipObs"));
     conf->Read(wxT("ServerURL"), &m_server_url, wxT("http://localhost:8080"));
     conf->Read(wxT("ShowWindBarbs"), &m_show_wind_barbs, true);
-    conf->Read(wxT("ShowLabels"), &m_show_labels, true);
-    conf->Read(wxT("HoverMode"), &m_hover_mode, true);
+    conf->Read(wxT("ShowLabels"), &m_show_labels, false);
+    conf->Read(wxT("InfoMode"), &m_info_mode, 2);
     conf->Read(wxT("EraseHistoryAfter"), &m_erase_history_after, 0);
 }
 
@@ -206,7 +252,7 @@ void shipobs_pi::SaveConfig() {
     conf->Write(wxT("ServerURL"), m_server_url);
     conf->Write(wxT("ShowWindBarbs"), m_show_wind_barbs);
     conf->Write(wxT("ShowLabels"), m_show_labels);
-    conf->Write(wxT("HoverMode"), m_hover_mode);
+    conf->Write(wxT("InfoMode"), m_info_mode);
     conf->Write(wxT("EraseHistoryAfter"), m_erase_history_after);
 }
 

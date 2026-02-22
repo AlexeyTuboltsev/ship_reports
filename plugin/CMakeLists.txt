@@ -78,6 +78,8 @@ set(SRC_PLUGIN
     src/render_overlay.cpp
     src/station_popup.h
     src/station_popup.cpp
+    src/station_info_frame.h
+    src/station_info_frame.cpp
     src/settings_dialog.h
     src/settings_dialog.cpp
 )

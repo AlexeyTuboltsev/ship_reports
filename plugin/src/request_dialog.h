@@ -8,11 +8,13 @@
 #include <wx/panel.h>
 #include <wx/choice.h>
 #include <wx/checkbox.h>
+#include <wx/radiobox.h>
 #include <wx/stattext.h>
 #include <wx/textctrl.h>
 #include <wx/button.h>
 #include <wx/listctrl.h>
 #include <wx/statline.h>
+#include <wx/statbox.h>
 
 class shipobs_pi;
 
@@ -39,6 +41,10 @@ private:
     void OnCoordBlur(wxFocusEvent &event);
     bool ValidateCoords();
 
+    void PopulateSettingsControls();
+    void ApplySettings();
+    void OnSettingsUrlBlur(wxFocusEvent &event);
+
     shipobs_pi *m_plugin;
 
     wxNotebook *m_notebook;
@@ -64,6 +70,12 @@ private:
     wxStaticText *m_status_label;
 
     double m_lat_min, m_lat_max, m_lon_min, m_lon_max;
+
+    // Tab 3 – Settings
+    wxTextCtrl *m_settings_url;
+    wxCheckBox *m_settings_wind_barbs;
+    wxCheckBox *m_settings_labels;
+    wxRadioBox *m_settings_info_mode;
 
     DECLARE_EVENT_TABLE()
 };
