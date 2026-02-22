@@ -85,8 +85,8 @@ set(SRC_PLUGIN
     src/observation.h
     src/server_client.h
     src/server_client.cpp
-    src/request_dialog.h
-    src/request_dialog.cpp
+    src/ship_reports_plugin_dialog.h
+    src/ship_reports_plugin_dialog.cpp
     src/render_overlay.h
     src/render_overlay.cpp
     src/station_popup.h

@@ -105,8 +105,8 @@ msgstr "bis"
 msgid "Get from\nViewport"
 msgstr "Aus\nKartenaus."
 
-msgid "Latitude: −90 to 90  ·  Longitude: −180 to 180"
-msgstr "Breite: −90 bis 90  ·  Länge: −180 bis 180"
+msgid "Latitude: −90.0 to 90.0  ·  Longitude: −180.0 to 180.0"
+msgstr "Breite: −90.0 bis 90.0  ·  Länge: −180.0 bis 180.0"
 
 msgid "Ready"
 msgstr "Bereit"
@@ -153,8 +153,8 @@ msgid "Station info"
 msgstr "Stationsinfo"
 
 # Coord validation
-msgid "Please enter valid coordinates: Latitude −90 to 90, Longitude −180 to 180"
-msgstr "Bitte gültige Koordinaten eingeben: Breite −90 bis 90, Länge −180 bis 180"
+msgid "Please enter valid coordinates: Latitude −90.0 to 90.0, Longitude −180.0 to 180.0"
+msgstr "Bitte gültige Koordinaten eingeben: Breite −90.0 bis 90.0, Länge −180.0 bis 180.0"
 
 msgid "Latitude min ≥ Latitude max — area may be empty"
 msgstr "Breitenmin ≥ Breitenmax — Bereich möglicherweise leer"

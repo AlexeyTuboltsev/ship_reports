@@ -11,12 +11,8 @@ def inline_fmt(text):
     """Apply inline markdown: links, bold, italic."""
     # Angle-bracket URLs <url>
     text = re.sub(r'<(https?://[^>]+)>', r'<a href="\1">\1</a>', text)
-    # Markdown links [text](url)
+    # Markdown links [text](url)  — handles http:, mailto:, etc.
     text = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2">\1</a>', text)
-    # mailto: bare links
-    text = re.sub(r'mailto:(\S+)', r'<a href="mailto:\1">\1</a>', text)
-    # Bare github.com URLs (not already inside an href attribute)
-    text = re.sub(r'(?<!["\'])(github\.com/\S+)', r'<a href="https://\1">\1</a>', text)
     # Bold **text**
     text = re.sub(r'\*\*([^*]+)\*\*', r'<b>\1</b>', text)
     # Italic *text* (not **)

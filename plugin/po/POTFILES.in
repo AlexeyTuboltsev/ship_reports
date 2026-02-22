@@ -1,5 +1,5 @@
 src/shipobs_pi.cpp
-src/request_dialog.cpp
+src/ship_reports_plugin_dialog.cpp
 src/settings_dialog.cpp
 src/station_popup.cpp
 src/station_info_frame.cpp

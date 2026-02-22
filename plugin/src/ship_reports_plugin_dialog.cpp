@@ -1,4 +1,4 @@
-#include "request_dialog.h"
+#include "ship_reports_plugin_dialog.h"
 #include "shipobs_pi.h"
 #include "server_client.h"
 
@@ -144,7 +144,7 @@ ShipReportsPluginDialog::ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *p
     p2Sizer->Add(areaHbox, 0, wxALL | wxEXPAND, 6);
 
     m_coord_error = new wxStaticText(p2, wxID_ANY,
-                                     _("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+                                     _("Latitude: \u221290.0 to 90.0  \u00b7  Longitude: \u2212180.0 to 180.0"));
     m_coord_error->SetForegroundColour(
         wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     p2Sizer->Add(m_coord_error, 0, wxLEFT | wxBOTTOM | wxEXPAND, 6);
@@ -273,6 +273,20 @@ void ShipReportsPluginDialog::OnSettingsUrlBlur(wxFocusEvent &event) {
     event.Skip();
 }
 
+// Normalize viewport longitudes to [-180, 180], matching the clamping in
+// server_client.cpp. OpenCPN can return lon_min < -180 when panned past the
+// antimeridian (e.g. lon_min=-259, lon_max=100).
+static void ClampViewportLon(double &lon_min, double &lon_max) {
+    if (lon_max - lon_min >= 360.0) {
+        lon_min = -180.0; lon_max = 180.0;
+    } else {
+        while (lon_min < -180.0) { lon_min += 360.0; lon_max += 360.0; }
+        while (lon_min >  180.0) { lon_min -= 360.0; lon_max -= 360.0; }
+        lon_min = std::max(-180.0, lon_min);
+        lon_max = std::min( 180.0, lon_max);
+    }
+}
+
 void ShipReportsPluginDialog::PopulateAreaControls() {
     auto fmt = [](double v) -> wxString {
         std::ostringstream ss;
@@ -291,6 +305,7 @@ void ShipReportsPluginDialog::UpdateViewportBounds(const PlugIn_ViewPort &vp) {
     m_lat_max = vp.lat_max;
     m_lon_min = vp.lon_min;
     m_lon_max = vp.lon_max;
+    ClampViewportLon(m_lon_min, m_lon_max);
     PopulateAreaControls();
     ValidateCoords();
 }
@@ -328,6 +343,7 @@ void ShipReportsPluginDialog::OnGetFromViewport(wxCommandEvent & /*event*/) {
     m_lat_max = vp.lat_max;
     m_lon_min = vp.lon_min;
     m_lon_max = vp.lon_max;
+    ClampViewportLon(m_lon_min, m_lon_max);
     PopulateAreaControls();
     ValidateCoords();
 }
@@ -355,12 +371,12 @@ bool ShipReportsPluginDialog::ValidateCoords() {
 
     if (!parse(m_lat_min_ctrl, lat_min) || !parse(m_lat_max_ctrl, lat_max) ||
         !parse(m_lon_min_ctrl, lon_min) || !parse(m_lon_max_ctrl, lon_max)) {
-        setError(_("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        setError(_("Please enter valid coordinates: Latitude \u221290.0 to 90.0, Longitude \u2212180.0 to 180.0"));
         return false;
     }
     if (lat_min < -90.0 || lat_min > 90.0 || lat_max < -90.0 || lat_max > 90.0 ||
         lon_min < -180.0 || lon_min > 180.0 || lon_max < -180.0 || lon_max > 180.0) {
-        setError(_("Please enter valid coordinates: Latitude \u221290 to 90, Longitude \u2212180 to 180"));
+        setError(_("Please enter valid coordinates: Latitude \u221290.0 to 90.0, Longitude \u2212180.0 to 180.0"));
         return false;
     }
     if (lat_min >= lat_max) {
@@ -371,7 +387,7 @@ bool ShipReportsPluginDialog::ValidateCoords() {
         return true;
     }
 
-    m_coord_error->SetLabel(_("Latitude: \u221290 to 90  \u00b7  Longitude: \u2212180 to 180"));
+    m_coord_error->SetLabel(_("Latitude: \u221290.0 to 90.0  \u00b7  Longitude: \u2212180.0 to 180.0"));
     m_coord_error->SetForegroundColour(
         wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
     m_coord_error->GetParent()->Layout();

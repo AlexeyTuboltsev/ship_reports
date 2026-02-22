@@ -1,5 +1,5 @@
 #include "shipobs_pi.h"
-#include "request_dialog.h"
+#include "ship_reports_plugin_dialog.h"
 #include "render_overlay.h"
 #include "station_popup.h"
 #include "station_info_frame.h"
