@@ -118,6 +118,11 @@ if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang|GNU")
     target_compile_options(${PACKAGE_NAME} PRIVATE -fvisibility=hidden)
 endif()
 
+if(APPLE)
+    set_target_properties(${PACKAGE_NAME} PROPERTIES
+        LINK_FLAGS "-undefined dynamic_lookup")
+endif()
+
 target_include_directories(${PACKAGE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/include
