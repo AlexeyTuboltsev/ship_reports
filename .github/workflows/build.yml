@@ -16,10 +16,10 @@ jobs:
           sudo apt-get install -y \
             libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
             cmake gettext python3
+      - name: Configure
+        run: cmake -B plugin/build-linux -S plugin
       - name: Build
-        run: |
-          cmake -B plugin/build-linux -S plugin
-          cmake --build plugin/build-linux -- -j$(nproc)
+        run: cmake --build plugin/build-linux -- -j$(nproc)
       - uses: actions/upload-artifact@v4
         with:
           name: libshipobs_pi-linux
@@ -33,10 +33,13 @@ jobs:
         run: |
           brew install wxwidgets curl gettext
           brew link gettext --force || true
-      - name: Build
+      - name: Configure
         run: |
-          cmake -B plugin/build-macos -S plugin
-          cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
+          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
+          cmake -B plugin/build-macos -S plugin \
+            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
+      - name: Build
+        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
       - uses: actions/upload-artifact@v4
         with:
           name: libshipobs_pi-macos
