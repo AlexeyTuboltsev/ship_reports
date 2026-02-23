@@ -1,0 +1,33 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build (Docker)
+        run: cd plugin && ./build-docker.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libshipobs_pi-linux
+          path: plugin/build/libshipobs_pi.so
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: brew install wxwidgets curl gettext && brew link gettext --force
+      - name: Build
+        run: |
+          cmake -B plugin/build-macos -S plugin
+          cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: libshipobs_pi-macos
+          path: plugin/build-macos/libshipobs_pi.dylib

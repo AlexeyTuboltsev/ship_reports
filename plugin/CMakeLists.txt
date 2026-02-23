@@ -25,6 +25,10 @@ if(MSVC)
     add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE -D_CRT_SECURE_NO_DEPRECATE)
 endif()
 
+if(APPLE)
+    add_definitions(-Wall -O2 -fexceptions -fvisibility=hidden)
+endif()
+
 # wxWidgets — try find_package first, fall back to manual paths from OpenCPN build
 if(NOT QT_ANDROID)
     if(NOT DEFINED wxWidgets_USE_FILE)
@@ -62,7 +66,7 @@ find_package(OpenGL REQUIRED)
 find_package(CURL REQUIRED)
 
 # OpenCPN headers
-set(OPENCPN_INCLUDE_DIR "/home/lexey/OpenCPN/include"
+set(OPENCPN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include/opencpn"
     CACHE PATH "Path to OpenCPN include directory")
 
 # Generate info_html.h from INFO.md at build time
@@ -143,6 +147,10 @@ if(UNIX AND NOT APPLE)
     install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
 endif()
 
+if(APPLE)
+    install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
+endif()
+
 # Translations: compile .po → .mo and install alongside OpenCPN locale tree
 find_package(Gettext)
 if(GETTEXT_FOUND)
@@ -160,6 +168,12 @@ if(GETTEXT_FOUND)
         )
         list(APPEND MO_FILES "${MO_FILE}")
         if(UNIX AND NOT APPLE)
+            install(FILES "${MO_FILE}"
+                DESTINATION "share/opencpn/locale/${LANG}/LC_MESSAGES"
+                RENAME "opencpn-${PACKAGE_NAME}.mo"
+            )
+        endif()
+        if(APPLE)
             install(FILES "${MO_FILE}"
                 DESTINATION "share/opencpn/locale/${LANG}/LC_MESSAGES"
                 RENAME "opencpn-${PACKAGE_NAME}.mo"
