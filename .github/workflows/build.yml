@@ -10,19 +10,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Build (Docker)
-        run: cd plugin && ./build-docker.sh
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
+            cmake gettext python3
+      - name: Build
+        run: |
+          cmake -B plugin/build-linux -S plugin
+          cmake --build plugin/build-linux -- -j$(nproc)
       - uses: actions/upload-artifact@v4
         with:
           name: libshipobs_pi-linux
-          path: plugin/build/libshipobs_pi.so
+          path: plugin/build-linux/libshipobs_pi.so
 
   build-macos:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
-        run: brew install wxwidgets curl gettext && brew link gettext --force
+        run: |
+          brew install wxwidgets curl gettext
+          brew link gettext --force || true
       - name: Build
         run: |
           cmake -B plugin/build-macos -S plugin
