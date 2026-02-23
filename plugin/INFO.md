@@ -114,9 +114,9 @@ todo
 
 ## Authors
 
-- Vibe: Alexey Tubotlsev 
+- Vibe: Alexey Tuboltsev 
   [tblz@proton.me](mailto:tblz@proton.me)
-  [github.com/AlexeyTubotlsev](https://github.com/AlexeyTubotlsev)
+  [github.com/AlexeyTuboltsev](https://github.com/AlexeyTuboltsev)
 
 - Coding: Claude Code
   [anthropic.com](https://anthropic.com)
