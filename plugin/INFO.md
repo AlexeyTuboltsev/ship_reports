@@ -1,4 +1,4 @@
-# Ship Reports Plugin
+# Ship Reports Plugin v0.1.0
 
 Near real-time meteorological observations from ships, buoys, and coastal stations in OpenCPN
 
@@ -58,7 +58,11 @@ Typical coverage: ~800–900 active US buoys and coastal stations.
 
 ### Getting the data
 
-This plugin requires a dedicated server that fetches and aggregates data from the sources, deduplicates overlapping reports, and serves a compact JSON API optimised for low-bandwidth connections. A publicly available server is planned for the near future. In the meantime, you can use the provided Docker image to self-host the server for testing purposes. See instructions below.
+This plugin requires a dedicated server that fetches and aggregates data from the sources, deduplicates overlapping reports, and serves a compact JSON API optimised for low-bandwidth connections.
+
+A public server is available at **<https://opencpn-tools.org>** — you can use it directly by entering that URL in the plugin settings. It is provided on a best-effort basis.
+
+Alternatively, you can self-host the server. See instructions below.
 
 ### Chart overlay
 
@@ -108,7 +112,43 @@ Lists all previous fetches. Select an entry to enable the **Export as GPX** and 
 ---
 
 ## Self-hosting the server
-todo
+
+The server is a Python/FastAPI application distributed as a Docker image. It fetches data from OSMC and NDBC in the background and exposes a compact JSON API for the plugin.
+
+**Source:** <https://github.com/AlexeyTuboltsev/ship_reports_server>
+
+### Prerequisites
+
+- [Docker](https://docs.docker.com/get-docker/) 24+
+- [Docker Compose](https://docs.docker.com/compose/) v2
+
+### Quick start
+
+```bash
+git clone https://github.com/AlexeyTuboltsev/ship_reports_server
+cd ship_reports_server
+cp .env.example .env
+# Edit .env — set PORT, ADMIN_USER, ADMIN_PASSWORD
+docker compose up -d --build
+```
+
+On first startup the server loads NDBC station metadata (~60 s), then begins fetching observations in the background. Once running, point the plugin at:
+
+```
+http://<your-server-ip>:<port>
+```
+
+### Admin UI
+
+Open `http://<your-server-ip>:<port>/admin` in a browser. Log in with the credentials from `.env`. From there you can monitor source fetch status, adjust fetch intervals and max observation age, trigger manual fetches, and view request statistics.
+
+### Updates
+
+```bash
+./deploy.sh
+```
+
+Pulls the latest code and rebuilds the container in one step.
 
 ---
 
