@@ -14,7 +14,6 @@ ARCH=$(uname -m)
 write_metadata() {
     local dest="$1" target="$2" target_ver="$3"
     cat > "${dest}/metadata.xml" << METAEOF
-<?xml version="1.0" encoding="UTF-8"?>
 <plugin version="1">
   <name>shipobs_pi</name>
   <version>${VERSION}</version>
@@ -42,7 +41,7 @@ if [ "${PLATFORM}" = "darwin" ]; then
     mkdir -p "${PKG}/OpenCPN.app/Contents/PlugIns"
     cp "${BUILD_DIR}/libshipobs_pi.dylib" "${PKG}/OpenCPN.app/Contents/PlugIns/"
     write_metadata "${PKG}" "darwin" "${MACOS_VER}"
-    tar czf "${PKG}.tar.gz" "${PKG}"
+    COPYFILE_DISABLE=1 tar czf "${PKG}.tar.gz" "${PKG}"
     rm -rf "${PKG}"
     echo "Created: ${PKG}.tar.gz"
 
