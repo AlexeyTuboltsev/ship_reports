@@ -60,7 +60,7 @@ Typical coverage: ~800–900 active US buoys and coastal stations.
 
 This plugin requires a dedicated server that fetches and aggregates data from the sources, deduplicates overlapping reports, and serves a compact JSON API optimised for low-bandwidth connections.
 
-A public server is available at **<https://opencpn-tools.org>** — you can use it directly by entering that URL in the plugin settings. It is provided on a best-effort basis.
+A public server is available at **<https://opencpn-tools.org:8080>** — you can use it directly by entering that URL in the plugin settings. It is provided on a best-effort basis.
 
 Alternatively, you can self-host the server. See instructions below.
 
