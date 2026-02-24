@@ -16,11 +16,12 @@ env:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
         run: |
+          sudo add-apt-repository ppa:opencpn/opencpn -y
           sudo apt-get update
           sudo apt-get install -y \
             libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
@@ -33,11 +34,11 @@ jobs:
         run: |
           cd plugin
           bash package.sh build-linux "$PLUGIN_VERSION"
-          mv *.tar.gz ..
+          mv shipobs_pi-*.tar.gz ..
       - uses: actions/upload-artifact@v4
         with:
           name: shipobs_pi-${{ env.PLUGIN_VERSION }}-linux
-          path: "*.tar.gz"
+          path: "shipobs_pi-*.tar.gz"
 
   build-macos-arm64:
     runs-on: macos-latest
@@ -58,11 +59,11 @@ jobs:
         run: |
           cd plugin
           bash package.sh build-macos "$PLUGIN_VERSION"
-          mv *.tar.gz ..
+          mv shipobs_pi-*.tar.gz ..
       - uses: actions/upload-artifact@v4
         with:
           name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-arm64
-          path: "*.tar.gz"
+          path: "shipobs_pi-*.tar.gz"
 
   build-macos-x86_64:
     runs-on: macos-15-intel
@@ -83,29 +84,42 @@ jobs:
         run: |
           cd plugin
           bash package.sh build-macos "$PLUGIN_VERSION"
-          mv *.tar.gz ..
+          mv shipobs_pi-*.tar.gz ..
       - uses: actions/upload-artifact@v4
         with:
           name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-x86_64
-          path: "*.tar.gz"
+          path: "shipobs_pi-*.tar.gz"
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name != 'pull_request'
     needs: [build-linux, build-macos-arm64, build-macos-x86_64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           merge-multiple: true
           path: dist/
-      - name: Create GitHub Release
+      - name: Publish release
         run: |
-          gh release create "${{ github.ref_name }}" \
-            --repo "${{ github.repository }}" \
-            --title "Ship Reports Plugin ${{ github.ref_name }}" \
-            --generate-notes \
-            dist/*.tar.gz
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            TAG="$GITHUB_REF_NAME"
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "Ship Reports Plugin $TAG" \
+              --generate-notes \
+              dist/*.tar.gz
+          else
+            TAG="ci-${GITHUB_REF_NAME//\//-}"
+            gh release delete "$TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag 2>/dev/null || true
+            gh release create "$TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --title "CI: ${GITHUB_REF_NAME} @ ${GITHUB_SHA::8}" \
+              --prerelease \
+              --notes "CI build from \`${GITHUB_REF_NAME}\`, commit ${GITHUB_SHA}" \
+              dist/*.tar.gz
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

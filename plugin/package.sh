@@ -36,22 +36,36 @@ METAEOF
 
 if [ "${PLATFORM}" = "darwin" ]; then
     MACOS_VER=$(sw_vers -productVersion | cut -d. -f1-2)
-    PKG="shipobs_pi-${VERSION}_darwin-${MACOS_VER}-${ARCH}"
+    # OpenCPN always uses darwin-wx32 as its abi (see TargetSetup.cmake)
+    TARGET="darwin-wx32"
+    PKG="shipobs_pi-${VERSION}_${TARGET}-${MACOS_VER}-${ARCH}"
     rm -rf "${PKG}"
     mkdir -p "${PKG}/OpenCPN.app/Contents/PlugIns"
     cp "${BUILD_DIR}/libshipobs_pi.dylib" "${PKG}/OpenCPN.app/Contents/PlugIns/"
-    write_metadata "${PKG}" "darwin" "${MACOS_VER}"
+    write_metadata "${PKG}" "${TARGET}" "${MACOS_VER}"
     COPYFILE_DISABLE=1 tar czf "${PKG}.tar.gz" "${PKG}"
     rm -rf "${PKG}"
     echo "Created: ${PKG}.tar.gz"
 
 elif [ "${PLATFORM}" = "linux" ]; then
+    DISTRO=$(lsb_release -is 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "linux")
     LINUX_VER=$(lsb_release -rs 2>/dev/null || echo "unknown")
-    PKG="shipobs_pi-${VERSION}_ubuntu-${LINUX_VER}-${ARCH}"
+
+    # Mirror OpenCPN's CompatOs logic (plugin_handler.cpp):
+    # Ubuntu 22.04 built with wx3.2 appends "-wx32" to the abi name.
+    WX_SUFFIX=""
+    if [ "${DISTRO}" = "ubuntu" ] && [ "${LINUX_VER}" = "22.04" ]; then
+        if wx-config --version 2>/dev/null | grep -qE '^3\.[2-9]|^[4-9]\.'  ; then
+            WX_SUFFIX="-wx32"
+        fi
+    fi
+
+    TARGET="${DISTRO}${WX_SUFFIX}-${ARCH}"
+    PKG="shipobs_pi-${VERSION}_${TARGET}-${LINUX_VER}"
     rm -rf "${PKG}"
     mkdir -p "${PKG}/lib/opencpn"
     cp "${BUILD_DIR}/libshipobs_pi.so" "${PKG}/lib/opencpn/"
-    write_metadata "${PKG}" "ubuntu" "${LINUX_VER}"
+    write_metadata "${PKG}" "${TARGET}" "${LINUX_VER}"
     tar czf "${PKG}.tar.gz" "${PKG}"
     rm -rf "${PKG}"
     echo "Created: ${PKG}.tar.gz"
