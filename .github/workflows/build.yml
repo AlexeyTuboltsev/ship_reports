@@ -1,0 +1,112 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PLUGIN_VERSION: "0.1.0"
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository ppa:opencpn/opencpn -y
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
+            cmake gettext python3
+      - name: Configure
+        run: cmake -B plugin/build-linux -S plugin
+      - name: Build
+        run: cmake --build plugin/build-linux -- -j$(nproc)
+      - name: Package
+        run: |
+          cd plugin
+          bash package.sh build-linux "$PLUGIN_VERSION"
+          mv shipobs_pi-*.tar.gz ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-linux
+          path: "shipobs_pi-*.tar.gz"
+
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install wxwidgets curl gettext
+          brew link gettext --force || true
+      - name: Configure
+        run: |
+          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
+          cmake -B plugin/build-macos -S plugin \
+            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
+      - name: Build
+        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
+      - name: Package
+        run: |
+          cd plugin
+          bash package.sh build-macos "$PLUGIN_VERSION"
+          mv shipobs_pi-*.tar.gz ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-arm64
+          path: "shipobs_pi-*.tar.gz"
+
+  build-macos-x86_64:
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          brew install wxwidgets curl gettext
+          brew link gettext --force || true
+      - name: Configure
+        run: |
+          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
+          cmake -B plugin/build-macos -S plugin \
+            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
+      - name: Build
+        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
+      - name: Package
+        run: |
+          cd plugin
+          bash package.sh build-macos "$PLUGIN_VERSION"
+          mv shipobs_pi-*.tar.gz ..
+      - uses: actions/upload-artifact@v4
+        with:
+          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-x86_64
+          path: "shipobs_pi-*.tar.gz"
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-linux, build-macos-arm64, build-macos-x86_64]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+          path: dist/
+      - name: Create GitHub Release
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            --repo "${{ github.repository }}" \
+            --title "Ship Reports Plugin ${{ github.ref_name }}" \
+            --generate-notes \
+            dist/*.tar.gz
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
