@@ -10,6 +10,10 @@ dist/
 
 # C++ build
 plugin/build/
+plugin/build-tests/
+
+# Local build artifacts
+builds/
 
 # Editor / tools
 .cache/
