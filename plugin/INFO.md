@@ -48,7 +48,7 @@ Typical coverage: ~4 000–5 000 active stations globally.
 **Data endpoint:** <https://www.ndbc.noaa.gov/data/latest_obs/latest_obs.txt>
 **Station metadata:** <https://www.ndbc.noaa.gov/activestations.xml>
 
-NDBC (operated by NOAA) maintains a network of moored buoys and coastal stations along US coasts, the Great Lakes, and open ocean. Observations include wind, wave height, sea temperature, and atmospheric pressure. The server refreshes NDBC data every 5 minutes; NDBC publishes observations with only a few minutes of delay, so displayed data is near-real-time.
+NDBC (operated by NOAA) maintains a network of moored buoys and coastal stations along US coasts, the Great Lakes, and open ocean. Observations include wind, wave height, sea surface temperature, and atmospheric pressure. The server refreshes NDBC data every 5 minutes; NDBC publishes observations with only a few minutes of delay, so displayed data is near-real-time.
 
 Typical coverage: ~800–900 active US buoys and coastal stations.
 
