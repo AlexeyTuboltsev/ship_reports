@@ -10,21 +10,18 @@ struct ObservationStation;
 
 class StationPopup : public wxPopupWindow {
 public:
-    StationPopup(wxWindow *parent);
-    ~StationPopup();
+  StationPopup(wxWindow *parent);
+  ~StationPopup();
 
-    void ShowStation(const ObservationStation &st, const wxPoint &pos);
+  void ShowStation(const ObservationStation &st, const wxPoint &pos);
 
 private:
-    wxStaticText *m_text;
+  wxStaticText *m_text;
 };
 
-// Called from MouseEventHook. Finds nearest station within 15px and shows popup.
-// Returns true if the event was consumed.
 bool HandleStationPopup(shipobs_pi *plugin, wxMouseEvent &event,
                         double cursor_lat, double cursor_lon,
-                        const PlugIn_ViewPort &vp,
-                        StationPopup *&popup,
+                        const PlugIn_ViewPort &vp, StationPopup *&popup,
                         wxWindow *parent);
 
-#endif // _STATION_POPUP_H_
+#endif  // _STATION_POPUP_H_
