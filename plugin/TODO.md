@@ -26,8 +26,11 @@
 - [x] Add info tab with explanation what it is and what are our sources.
 - [x] Add logging for fetches and errors to OpenCPN main log
 - [x] rename RequestDialog to ShipReportsPluginDialog everywhere
-- [ ] how are UI strings/translations handled in ocpn?
+- [x] how are UI strings/translations handled in ocpn?
 - [ ] UI / integration tests for the plugin (layer export flow)
+- [ ] Unit tests for `server_client.cpp` — lon/lat locale-safe formatting, antimeridian bbox clamping, JSON response parsing
+- [ ] Unit tests for GPX export field formatting
+- Note: rendering, dialogs, popups require OpenCPN running — skip for now
 
 ## Questions for the OpenCPN team
 
