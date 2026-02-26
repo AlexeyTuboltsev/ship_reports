@@ -16,4 +16,4 @@ void RenderStationsDC(shipobs_pi *plugin, wxDC &dc, PlugIn_ViewPort *vp);
 // Safe to call outside a GL frame — actual cleanup happens at next render.
 void InvalidateLabelCache();
 
-#endif // _RENDER_OVERLAY_H_
+#endif  // _RENDER_OVERLAY_H_

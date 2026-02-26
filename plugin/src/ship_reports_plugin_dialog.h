@@ -20,64 +20,64 @@ class shipobs_pi;
 
 class ShipReportsPluginDialog : public wxDialog {
 public:
-    ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *plugin);
-    ~ShipReportsPluginDialog();
+  ShipReportsPluginDialog(wxWindow *parent, shipobs_pi *plugin);
+  ~ShipReportsPluginDialog();
 
-    void UpdateViewportBounds(const PlugIn_ViewPort &vp);
-    void RefreshHistory();
+  void UpdateViewportBounds(const PlugIn_ViewPort &vp);
+  void RefreshHistory();
 
 private:
-    void OnFetch(wxCommandEvent &event);
-    void OnClose(wxCommandEvent &event);
-    void OnWindowClose(wxCloseEvent &event);
-    void OnHistorySelected(wxListEvent &event);
-    void OnExportGPX(wxCommandEvent &event);
-    void OnDeleteEntry(wxCommandEvent &event);
-    void OnGetFromViewport(wxCommandEvent &event);
-    void OnSize(wxSizeEvent &event);
+  void OnFetch(wxCommandEvent &event);
+  void OnClose(wxCommandEvent &event);
+  void OnWindowClose(wxCloseEvent &event);
+  void OnHistorySelected(wxListEvent &event);
+  void OnExportGPX(wxCommandEvent &event);
+  void OnDeleteEntry(wxCommandEvent &event);
+  void OnGetFromViewport(wxCommandEvent &event);
+  void OnSize(wxSizeEvent &event);
 
-    void PopulateAreaControls();
-    void AdjustColumns();
-    void OnCoordBlur(wxFocusEvent &event);
-    bool ValidateCoords();
+  void PopulateAreaControls();
+  void AdjustColumns();
+  void OnCoordBlur(wxFocusEvent &event);
+  bool ValidateCoords();
 
-    void PopulateSettingsControls();
-    void ApplySettings();
-    void OnSettingsUrlBlur(wxFocusEvent &event);
+  void PopulateSettingsControls();
+  void ApplySettings();
+  void OnSettingsUrlBlur(wxFocusEvent &event);
 
-    shipobs_pi *m_plugin;
+  shipobs_pi *m_plugin;
 
-    wxNotebook *m_notebook;
+  wxNotebook *m_notebook;
 
-    // Tab 1 – Ship Reports
-    wxListCtrl *m_history_list;
-    wxButton   *m_export_gpx_btn;
-    wxButton   *m_delete_entry_btn;
+  // Tab 1 - Ship Reports
+  wxListCtrl *m_history_list;
+  wxButton *m_export_gpx_btn;
+  wxButton *m_delete_entry_btn;
 
-    // Tab 2 – Fetch new
-    wxChoice     *m_max_age;
-    wxCheckBox   *m_chk_ship;
-    wxCheckBox   *m_chk_buoy;
-    wxCheckBox   *m_chk_shore;
-    wxCheckBox   *m_chk_drifter;
-    wxCheckBox   *m_chk_other;
-    wxTextCtrl   *m_lat_min_ctrl;
-    wxTextCtrl   *m_lat_max_ctrl;
-    wxTextCtrl   *m_lon_min_ctrl;
-    wxTextCtrl   *m_lon_max_ctrl;
-    wxStaticText *m_coord_error;
-    wxButton     *m_fetch_btn;
-    wxStaticText *m_status_label;
+  // Tab 2 - Fetch new
+  wxChoice *m_max_age;
+  wxCheckBox *m_chk_ship;
+  wxCheckBox *m_chk_buoy;
+  wxCheckBox *m_chk_shore;
+  wxCheckBox *m_chk_drifter;
+  wxCheckBox *m_chk_other;
+  wxTextCtrl *m_lat_min_ctrl;
+  wxTextCtrl *m_lat_max_ctrl;
+  wxTextCtrl *m_lon_min_ctrl;
+  wxTextCtrl *m_lon_max_ctrl;
+  wxStaticText *m_coord_error;
+  wxButton *m_fetch_btn;
+  wxStaticText *m_status_label;
 
-    double m_lat_min, m_lat_max, m_lon_min, m_lon_max;
+  double m_lat_min, m_lat_max, m_lon_min, m_lon_max;
 
-    // Tab 3 – Settings
-    wxTextCtrl *m_settings_url;
-    wxCheckBox *m_settings_wind_barbs;
-    wxCheckBox *m_settings_labels;
-    wxRadioBox *m_settings_info_mode;
+  // Tab 3 - Settings
+  wxTextCtrl *m_settings_url;
+  wxCheckBox *m_settings_wind_barbs;
+  wxCheckBox *m_settings_labels;
+  wxRadioBox *m_settings_info_mode;
 
-    DECLARE_EVENT_TABLE()
+  DECLARE_EVENT_TABLE()
 };
 
-#endif // _REQUEST_DIALOG_H_
+#endif  // _REQUEST_DIALOG_H_

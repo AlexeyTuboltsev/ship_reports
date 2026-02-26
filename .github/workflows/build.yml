@@ -2,7 +2,7 @@ name: Build
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
@@ -13,9 +13,30 @@ concurrency:
 
 env:
   PLUGIN_VERSION: "0.1.0"
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
 
 jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository ppa:opencpn/opencpn -y
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
+            cmake gettext python3
+      - name: Configure
+        run: cmake -B plugin/build-tests -S plugin -DBUILD_TESTS=ON
+      - name: Build tests
+        run: cmake --build plugin/build-tests -- -j$(nproc)
+      - name: Run tests
+        run: ctest --test-dir plugin/build-tests --output-on-failure
+
   build-linux:
+    needs: [test]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -40,77 +61,68 @@ jobs:
           name: shipobs_pi-${{ env.PLUGIN_VERSION }}-linux
           path: "shipobs_pi-*.tar.gz"
 
-  build-macos-arm64:
+  build-macos-universal:
+    needs: [test]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install dependencies
+
+      - name: Install arm64 dependencies
         run: |
           brew install wxwidgets curl gettext
           brew link gettext --force || true
-      - name: Configure
+
+      - name: Install x86_64 dependencies
         run: |
-          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
-          cmake -B plugin/build-macos -S plugin \
-            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
-      - name: Build
-        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
+          if [ -x /usr/local/bin/brew ]; then
+            arch -x86_64 /usr/local/bin/brew install wxwidgets curl gettext
+            arch -x86_64 /usr/local/bin/brew link gettext --force || true
+          else
+            echo "x86_64 Homebrew not found at /usr/local — installing..."
+            arch -x86_64 /bin/bash -c \
+              "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+            arch -x86_64 /usr/local/bin/brew install wxwidgets curl gettext
+            arch -x86_64 /usr/local/bin/brew link gettext --force || true
+          fi
+
+      - name: Build arm64
+        run: |
+          cmake -B plugin/build-arm64 -S plugin \
+            -DwxWidgets_CONFIG_EXECUTABLE=/opt/homebrew/bin/wx-config \
+            -DCMAKE_OSX_ARCHITECTURES=arm64
+          cmake --build plugin/build-arm64 -- -j$(sysctl -n hw.logicalcpu)
+
+      - name: Build x86_64
+        run: |
+          cmake -B plugin/build-x86_64 -S plugin \
+            -DwxWidgets_CONFIG_EXECUTABLE=/usr/local/bin/wx-config \
+            -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+            -DCMAKE_PREFIX_PATH=/usr/local
+          cmake --build plugin/build-x86_64 -- -j$(sysctl -n hw.logicalcpu)
+
+      - name: Create universal binary
+        run: |
+          mkdir -p plugin/build-macos
+          lipo -create \
+            plugin/build-arm64/libshipobs_pi.dylib \
+            plugin/build-x86_64/libshipobs_pi.dylib \
+            -output plugin/build-macos/libshipobs_pi.dylib
+          lipo -archs plugin/build-macos/libshipobs_pi.dylib
+
       - name: Package
         run: |
           cd plugin
           bash package.sh build-macos "$PLUGIN_VERSION"
           mv shipobs_pi-*.tar.gz ..
+
       - uses: actions/upload-artifact@v4
         with:
-          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-arm64
+          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-universal
           path: "shipobs_pi-*.tar.gz"
-
-  build-macos-x86_64:
-    runs-on: macos-15-intel
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          brew install wxwidgets curl gettext
-          brew link gettext --force || true
-      - name: Configure
-        run: |
-          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
-          cmake -B plugin/build-macos -S plugin \
-            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
-      - name: Build
-        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
-      - name: Package
-        run: |
-          cd plugin
-          bash package.sh build-macos "$PLUGIN_VERSION"
-          mv shipobs_pi-*.tar.gz ..
-      - uses: actions/upload-artifact@v4
-        with:
-          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-x86_64
-          path: "shipobs_pi-*.tar.gz"
-
-  test:
-    runs-on: ubuntu-22.04
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          sudo add-apt-repository ppa:opencpn/opencpn -y
-          sudo apt-get update
-          sudo apt-get install -y \
-            libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
-            cmake gettext python3
-      - name: Configure
-        run: cmake -B plugin/build-tests -S plugin -DBUILD_TESTS=ON
-      - name: Build tests
-        run: cmake --build plugin/build-tests -- -j$(nproc)
-      - name: Run tests
-        run: ctest --test-dir plugin/build-tests --output-on-failure
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-linux, build-macos-arm64, build-macos-x86_64, test]
+    needs: [build-linux, build-macos-universal]
     runs-on: ubuntu-latest
     permissions:
       contents: write
