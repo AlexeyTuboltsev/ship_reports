@@ -1,5 +1,6 @@
 #include "obs_parser.h"
 
+#include <wx/intl.h>
 #include <wx/jsonreader.h>
 #include <wx/jsonval.h>
 #include <wx/log.h>
