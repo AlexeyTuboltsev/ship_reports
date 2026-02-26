@@ -34,6 +34,7 @@ jobs:
         run: ctest --test-dir plugin/build-tests --output-on-failure
 
   build-linux:
+    needs: [test]
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -59,6 +60,7 @@ jobs:
           path: "shipobs_pi-*.tar.gz"
 
   build-macos-arm64:
+    needs: [test]
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +86,8 @@ jobs:
           path: "shipobs_pi-*.tar.gz"
 
   build-macos-x86_64:
-    runs-on: macos-15-intel
+    needs: [test]
+    runs-on: macos-13
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -110,7 +113,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-linux, build-macos-arm64, build-macos-x86_64, test]
+    needs: [build-linux, build-macos-arm64, build-macos-x86_64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
