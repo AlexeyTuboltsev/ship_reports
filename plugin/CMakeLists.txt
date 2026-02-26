@@ -87,8 +87,13 @@ set(SRC_PLUGIN
     src/shipobs_pi.h
     src/shipobs_pi.cpp
     src/observation.h
+    src/url_builder.h
+    src/obs_parser.h
+    src/obs_parser.cpp
     src/server_client.h
     src/server_client.cpp
+    src/gpx_builder.h
+    src/gpx_builder.cpp
     src/ship_reports_plugin_dialog.h
     src/ship_reports_plugin_dialog.cpp
     src/render_overlay.h
@@ -154,6 +159,13 @@ endif()
 
 if(APPLE)
     install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
+endif()
+
+# Unit tests (opt-in: cmake -DBUILD_TESTS=ON)
+option(BUILD_TESTS "Build unit tests" OFF)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
 endif()
 
 # Translations: compile .po → .mo and install alongside OpenCPN locale tree
