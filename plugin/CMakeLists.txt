@@ -29,7 +29,7 @@ if(APPLE)
     add_definitions(-Wall -O2 -fexceptions -fvisibility=hidden)
 endif()
 
-# wxWidgets — try find_package first, fall back to manual paths from OpenCPN build
+# wxWidgets
 if(NOT QT_ANDROID)
     if(NOT DEFINED wxWidgets_USE_FILE)
         set(wxWidgets_USE_LIBS base core net xml html adv gl)
@@ -40,7 +40,6 @@ if(NOT QT_ANDROID)
         include(${wxWidgets_USE_FILE})
     else()
         message(STATUS "wxWidgets not found via find_package, using OpenCPN build paths")
-        # Use wx headers extracted from dev packages
         set(WX_INCLUDE_DIRS
             /tmp/wx-dev/extracted/usr/include/wx-3.2
             /tmp/wx-dev/extracted/usr/lib/x86_64-linux-gnu/wx/include/gtk3-unicode-3.2
@@ -87,8 +86,13 @@ set(SRC_PLUGIN
     src/shipobs_pi.h
     src/shipobs_pi.cpp
     src/observation.h
+    src/url_builder.h
+    src/obs_parser.h
+    src/obs_parser.cpp
     src/server_client.h
     src/server_client.cpp
+    src/gpx_builder.h
+    src/gpx_builder.cpp
     src/ship_reports_plugin_dialog.h
     src/ship_reports_plugin_dialog.cpp
     src/render_overlay.h
@@ -129,7 +133,7 @@ target_include_directories(${PACKAGE_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/include/wx
     ${OPENCPN_INCLUDE_DIR}
     ${CURL_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_BINARY_DIR}   # for generated info_html.h
+    ${CMAKE_CURRENT_BINARY_DIR}
 )
 
 if(wxWidgets_FOUND)
@@ -156,7 +160,14 @@ if(APPLE)
     install(TARGETS ${PACKAGE_NAME} LIBRARY DESTINATION lib/opencpn)
 endif()
 
-# Translations: compile .po → .mo and install alongside OpenCPN locale tree
+# Unit tests (opt-in: cmake -DBUILD_TESTS=ON)
+option(BUILD_TESTS "Build unit tests" OFF)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+# Translations
 find_package(Gettext)
 if(GETTEXT_FOUND)
     file(GLOB PO_FILES "${CMAKE_CURRENT_SOURCE_DIR}/po/*.po")
@@ -189,7 +200,6 @@ if(GETTEXT_FOUND)
         add_custom_target(translations ALL DEPENDS ${MO_FILES})
     endif()
 
-    # Developer target: regenerate .pot template from source
     find_program(XGETTEXT_EXECUTABLE xgettext)
     if(XGETTEXT_EXECUTABLE)
         add_custom_target(update_pot

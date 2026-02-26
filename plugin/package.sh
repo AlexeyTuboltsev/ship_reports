@@ -15,16 +15,21 @@ write_metadata() {
     local dest="$1" target="$2" target_ver="$3"
     cat > "${dest}/metadata.xml" << METAEOF
 <plugin version="1">
-  <name>shipobs_pi</name>
+  <name>Ship Reports</name>
   <version>${VERSION}</version>
   <release>1</release>
-  <summary>Ship and Buoy Observation Reports</summary>
+  <summary>Ship and buoy weather observations</summary>
   <api-version>1.16</api-version>
   <open-source>yes</open-source>
   <author>Alexey Tuboltsev</author>
   <source>https://github.com/AlexeyTuboltsev/ship_reports</source>
   <info-url>https://github.com/AlexeyTuboltsev/ship_reports</info-url>
-  <description>Fetches ship and buoy observations from a self-hosted server and renders them as overlays on the OpenCPN chart.</description>
+  <description>Fetches ship and buoy weather
+observations from a configurable
+server and renders them as
+color-coded markers with wind
+barbs and station labels.
+Data sources: NDBC, OSMC.</description>
   <target>${target}</target>
   <target-version>${target_ver}</target-version>
   <target-arch>${ARCH}</target-arch>
@@ -36,7 +41,6 @@ METAEOF
 
 if [ "${PLATFORM}" = "darwin" ]; then
     MACOS_VER=$(sw_vers -productVersion | cut -d. -f1-2)
-    # OpenCPN always uses darwin-wx32 as its abi (see TargetSetup.cmake)
     TARGET="darwin-wx32"
     PKG="shipobs_pi-${VERSION}_${TARGET}-${MACOS_VER}-${ARCH}"
     rm -rf "${PKG}"
@@ -51,8 +55,6 @@ elif [ "${PLATFORM}" = "linux" ]; then
     DISTRO=$(lsb_release -is 2>/dev/null | tr '[:upper:]' '[:lower:]' || echo "linux")
     LINUX_VER=$(lsb_release -rs 2>/dev/null || echo "unknown")
 
-    # Mirror OpenCPN's CompatOs logic (plugin_handler.cpp):
-    # Ubuntu 22.04 built with wx3.2 appends "-wx32" to the abi name.
     WX_SUFFIX=""
     if [ "${DISTRO}" = "ubuntu" ] && [ "${LINUX_VER}" = "22.04" ]; then
         if wx-config --version 2>/dev/null | grep -qE '^3\.[2-9]|^[4-9]\.'  ; then

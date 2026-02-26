@@ -15,6 +15,24 @@ env:
   PLUGIN_VERSION: "0.1.0"
 
 jobs:
+  test:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo add-apt-repository ppa:opencpn/opencpn -y
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwxgtk3.2-dev libcurl4-openssl-dev libgl-dev \
+            cmake gettext python3
+      - name: Configure
+        run: cmake -B plugin/build-tests -S plugin -DBUILD_TESTS=ON
+      - name: Build tests
+        run: cmake --build plugin/build-tests -- -j$(nproc)
+      - name: Run tests
+        run: ctest --test-dir plugin/build-tests --output-on-failure
+
   build-linux:
     runs-on: ubuntu-22.04
     steps:
@@ -92,7 +110,7 @@ jobs:
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-linux, build-macos-arm64, build-macos-x86_64]
+    needs: [build-linux, build-macos-arm64, build-macos-x86_64, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
