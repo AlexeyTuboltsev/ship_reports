@@ -10,20 +10,20 @@ class shipobs_pi;
 
 class SettingsDialog : public wxDialog {
 public:
-    SettingsDialog(wxWindow *parent, shipobs_pi *plugin);
-    ~SettingsDialog();
+  SettingsDialog(wxWindow *parent, shipobs_pi *plugin);
+  ~SettingsDialog();
 
 private:
-    void OnOK(wxCommandEvent &event);
+  void OnOK(wxCommandEvent &event);
 
-    shipobs_pi *m_plugin;
+  shipobs_pi *m_plugin;
 
-    wxTextCtrl *m_server_url;
-    wxCheckBox *m_wind_barbs;
-    wxCheckBox *m_labels;
-    wxRadioBox *m_info_trigger;
+  wxTextCtrl *m_server_url;
+  wxCheckBox *m_wind_barbs;
+  wxCheckBox *m_labels;
+  wxRadioBox *m_info_trigger;
 
-    DECLARE_EVENT_TABLE()
+  DECLARE_EVENT_TABLE()
 };
 
-#endif // _SETTINGS_DIALOG_H_
+#endif  // _SETTINGS_DIALOG_H_
