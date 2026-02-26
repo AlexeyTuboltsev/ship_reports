@@ -85,35 +85,9 @@ jobs:
           name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-arm64
           path: "shipobs_pi-*.tar.gz"
 
-  build-macos-x86_64:
-    needs: [test]
-    runs-on: macos-13
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: |
-          brew install wxwidgets curl gettext
-          brew link gettext --force || true
-      - name: Configure
-        run: |
-          WX_CONFIG=$(brew --prefix wxwidgets)/bin/wx-config
-          cmake -B plugin/build-macos -S plugin \
-            -DwxWidgets_CONFIG_EXECUTABLE="$WX_CONFIG"
-      - name: Build
-        run: cmake --build plugin/build-macos -- -j$(sysctl -n hw.logicalcpu)
-      - name: Package
-        run: |
-          cd plugin
-          bash package.sh build-macos "$PLUGIN_VERSION"
-          mv shipobs_pi-*.tar.gz ..
-      - uses: actions/upload-artifact@v4
-        with:
-          name: shipobs_pi-${{ env.PLUGIN_VERSION }}-macos-x86_64
-          path: "shipobs_pi-*.tar.gz"
-
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-linux, build-macos-arm64, build-macos-x86_64]
+    needs: [build-linux, build-macos-arm64]
     runs-on: ubuntu-latest
     permissions:
       contents: write
